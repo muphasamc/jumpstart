@@ -1,0 +1,4477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>jumpstart randomizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English+SC&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/mana-font@1.18.0/css/mana.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0806;
+  --bg-2:#13100c;
+  --ink:#f3e9d2;
+  --ink-dim:#a8997a;
+  --gold:#c9a24a;
+  --gold-bright:#f0c75c;
+  --frame:#2a2218;
+  --frame-2:#3a2f20;
+  --c-white:#f5e7a0;
+  --c-blue:#3b82f6;
+  --c-black:#8b3fbf;
+  --c-red:#dc2626;
+  --c-green:#16a34a;
+  --c-multi:linear-gradient(120deg,#f5e7a0 0%,#3b82f6 25%,#8b3fbf 50%,#dc2626 75%,#16a34a 100%);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+body{
+  font-family:'Cinzel',Georgia,serif;
+  background:
+    radial-gradient(ellipse at top,rgba(201,162,74,0.08),transparent 60%),
+    radial-gradient(ellipse at bottom,rgba(139,63,191,0.06),transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,0.012) 2px 3px),
+    repeating-linear-gradient(90deg,transparent 0 2px,rgba(255,255,255,0.012) 2px 3px);
+  pointer-events:none;
+  z-index:1;
+}
+/* ambient tint — 4 layers (2 per side), cross-fade between them on color change.
+   each layer carries one color via data-color (CSS-only). on change: idle layer
+   gets the new color + data-active, active layer loses data-active, both transition
+   opacity simultaneously → true cross-fade with no flat moment in the middle. */
+.tint-layer{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+  opacity:0;
+  background:transparent;
+  transition: opacity 850ms cubic-bezier(0.4,0,0.2,1);
+}
+.tint-layer[data-active]{opacity:1}
+
+/* LEFT side — gradient centered at 25% horizontal, 3-stop decay (center → mid → edge)
+   for a more material falloff than a 2-stop linear fade. */
+.tint-layer.is-left[data-color="white"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(245,231,160,0.46) 0%,
+    rgba(245,231,160,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-left[data-color="blue"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(59,130,246,0.52) 0%,
+    rgba(59,130,246,0.20) 35%,
+    transparent 72%);
+}
+.tint-layer.is-left[data-color="black"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(139,63,191,0.54) 0%,
+    rgba(139,63,191,0.22) 35%,
+    transparent 72%);
+}
+.tint-layer.is-left[data-color="red"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(220,38,38,0.46) 0%,
+    rgba(220,38,38,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-left[data-color="green"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(22,163,74,0.46) 0%,
+    rgba(22,163,74,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-left[data-color="multicolor"]{
+  background:radial-gradient(ellipse 62% 78% at 25% 35%,
+    rgba(201,162,74,0.40) 0%,
+    rgba(201,162,74,0.16) 35%,
+    transparent 72%);
+}
+
+/* RIGHT side — same colors, gradient centered at 75% horizontal */
+.tint-layer.is-right[data-color="white"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(245,231,160,0.46) 0%,
+    rgba(245,231,160,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-right[data-color="blue"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(59,130,246,0.52) 0%,
+    rgba(59,130,246,0.20) 35%,
+    transparent 72%);
+}
+.tint-layer.is-right[data-color="black"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(139,63,191,0.54) 0%,
+    rgba(139,63,191,0.22) 35%,
+    transparent 72%);
+}
+.tint-layer.is-right[data-color="red"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(220,38,38,0.46) 0%,
+    rgba(220,38,38,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-right[data-color="green"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(22,163,74,0.46) 0%,
+    rgba(22,163,74,0.18) 35%,
+    transparent 72%);
+}
+.tint-layer.is-right[data-color="multicolor"]{
+  background:radial-gradient(ellipse 62% 78% at 75% 35%,
+    rgba(201,162,74,0.40) 0%,
+    rgba(201,162,74,0.16) 35%,
+    transparent 72%);
+}
+
+/* fx canvas — sits on top, never blocks interaction */
+#fx-canvas{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:99;
+}
+@media (prefers-reduced-motion: reduce){
+  .tint-layer{transition:none}
+  #fx-canvas{display:none}
+}
+
+.shell{
+  position:relative;
+  z-index:2;
+  max-width:1800px;
+  margin:0 auto;
+  padding:16px 32px 20px;
+}
+
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--frame);
+  padding-bottom:12px;
+  margin-bottom:18px;
+}
+.brand{
+  font-family:'IM Fell English SC','Cinzel',serif;
+  font-size:32px;
+  letter-spacing:0.08em;
+  color:var(--gold);
+  text-shadow:0 0 30px rgba(201,162,74,0.4);
+}
+.brand .sub{
+  font-family:'Cinzel',serif;
+  font-size:14px;
+  color:var(--ink-dim);
+  letter-spacing:0.4em;
+  margin-left:14px;
+  text-transform:uppercase;
+}
+.stats{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--ink-dim);
+  letter-spacing:0.15em;
+}
+
+/* INITIAL STAGE */
+.stage-initial{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:70vh;
+  gap:48px;
+}
+.bigtitle{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:clamp(72px,11vw,160px);
+  line-height:0.9;
+  text-align:center;
+  letter-spacing:0.02em;
+  background:linear-gradient(180deg,#f0c75c 0%,#c9a24a 50%,#7a5d24 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 80px rgba(201,162,74,0.2);
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,0.6));
+}
+.bigtitle .small{
+  display:block;
+  font-size:0.18em;
+  letter-spacing:0.55em;
+  color:var(--ink-dim);
+  -webkit-text-fill-color:var(--ink-dim);
+  margin-top:24px;
+  font-weight:500;
+}
+
+.roll-btn{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:48px;
+  letter-spacing:0.12em;
+  padding:28px 96px;
+  background:linear-gradient(180deg,#1a1410 0%,#0a0806 100%);
+  color:var(--gold-bright);
+  border:2px solid var(--gold);
+  border-radius:4px;
+  cursor:pointer;
+  position:relative;
+  text-transform:uppercase;
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,0.5),
+    inset 0 0 40px rgba(201,162,74,0.15),
+    0 0 0 1px rgba(0,0,0,0.5) inset,
+    0 8px 24px rgba(0,0,0,0.6),
+    0 0 80px rgba(201,162,74,0.2);
+  transition:transform .15s ease,box-shadow .25s ease,color .15s ease;
+}
+.roll-btn::before,.roll-btn::after{
+  content:"";
+  position:absolute;
+  width:14px;height:14px;
+  border:1px solid var(--gold);
+}
+.roll-btn::before{top:6px;left:6px;border-right:none;border-bottom:none}
+.roll-btn::after{bottom:6px;right:6px;border-left:none;border-top:none}
+.roll-btn:hover{
+  color:#fff5d6;
+  transform:translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,0.5),
+    inset 0 0 60px rgba(240,199,92,0.25),
+    0 10px 32px rgba(0,0,0,0.7),
+    0 0 120px rgba(240,199,92,0.35);
+}
+.roll-btn:active{
+  transform:translateY(1px);
+  transition:transform .05s linear, box-shadow .05s linear;
+  box-shadow:
+    inset 0 4px 12px rgba(0,0,0,0.7),
+    inset 0 0 30px rgba(201,162,74,0.1),
+    0 2px 8px rgba(0,0,0,0.5),
+    0 0 40px rgba(201,162,74,0.15);
+}
+
+/* REVEAL STAGE */
+.stage-reveal{display:none}
+.stage-reveal.active{display:block}
+
+.packs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  margin-bottom:16px;
+}
+
+.pack{
+  --c:#888;
+  position:relative;
+  background:
+    linear-gradient(135deg,rgba(0,0,0,0.45),rgba(0,0,0,0.15)),
+    rgba(19,16,12,0.72);
+  border:1px solid var(--frame-2);
+  border-radius:6px;
+  padding:20px 28px 18px;
+  overflow:hidden;
+  min-height:180px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  transition: border-color 260ms cubic-bezier(0.4,0,0.2,1),
+              box-shadow 260ms cubic-bezier(0.4,0,0.2,1);
+}
+.pack::before{
+  content:"";
+  position:absolute;inset:0;
+  background:var(--c);
+  opacity:0.08;
+  pointer-events:none;
+  z-index:0;
+}
+.pack::after{
+  content:"";
+  position:absolute;
+  top:0;left:0;right:0;height:6px;
+  background:var(--c);
+  box-shadow:0 0 30px var(--c);
+  transition: box-shadow 260ms cubic-bezier(0.4,0,0.2,1),
+              height 260ms cubic-bezier(0.4,0,0.2,1);
+}
+.pack:hover{
+  border-color: color-mix(in srgb, var(--c) 35%, var(--frame-2));
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.pack:hover::after{
+  box-shadow: 0 0 48px var(--c), 0 0 18px var(--c);
+}
+.pack.multi::after{background:var(--c-multi)}
+.pack > *{position:relative;z-index:1}
+
+.pack-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:12px;
+}
+.pack-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.3em;
+  color:var(--ink-dim);
+  text-transform:uppercase;
+}
+.pack-color-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.25em;
+  padding:4px 10px;
+  border:1px solid var(--c);
+  color:var(--c);
+  text-transform:uppercase;
+  border-radius:2px;
+}
+.pack.multi .pack-color-tag{
+  background:var(--c-multi);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  border-image:linear-gradient(90deg,#f5e7a0,#3b82f6,#8b3fbf,#dc2626,#16a34a) 1;
+}
+
+.pack-name{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:clamp(40px,4.2vw,68px);
+  line-height:0.9;
+  letter-spacing:0.01em;
+  color:#fff;
+  text-shadow:
+    0 0 40px var(--c),
+    0 0 8px rgba(0,0,0,0.8);
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.pack-meta{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--ink-dim);
+  letter-spacing:0.05em;
+  line-height:1.4;
+  max-width:640px;
+}
+
+.pack-actions{
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+}
+.pack-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.25em;
+  padding:8px 14px;
+  background:transparent;
+  border:1px solid var(--frame-2);
+  color:var(--ink-dim);
+  cursor:pointer;
+  text-transform:uppercase;
+  border-radius:2px;
+  transition: border-color 180ms cubic-bezier(0.4,0,0.2,1),
+              color 180ms cubic-bezier(0.4,0,0.2,1),
+              background 180ms cubic-bezier(0.4,0,0.2,1),
+              transform 80ms cubic-bezier(0.4,0,0.2,1),
+              box-shadow 80ms cubic-bezier(0.4,0,0.2,1);
+}
+.pack-btn:hover{
+  border-color:var(--gold);
+  color:var(--gold-bright);
+}
+.pack-btn:active{
+  transform:translateY(1px);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+}
+.pack-btn.locked{
+  border-color:var(--gold-bright);
+  color:var(--bg);
+  background:var(--gold-bright);
+}
+.pack-btn.locked:active{
+  transform:translateY(1px);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* SLOT REEL animation */
+.pack.rolling .pack-name{
+  animation:reelShake 0.06s steps(2) infinite;
+}
+@keyframes reelShake{
+  0%{transform:translateY(0) }
+  50%{transform:translateY(4px)}
+  100%{transform:translateY(0)}
+}
+
+/* SWEEP on the color stripe — left to right wipe at settle */
+.pack .sweep{
+  position:absolute;
+  top:0;left:0;height:6px;
+  width:100%;
+  pointer-events:none;
+  z-index:2;
+  transform-origin:left center;
+  transform:scaleX(0);
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.85) 50%,
+    transparent 100%);
+  mix-blend-mode:screen;
+}
+.pack.settling .sweep{
+  animation:sweepLine 260ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+}
+@keyframes sweepLine{
+  0%  {transform:scaleX(0); opacity:0}
+  20% {opacity:1}
+  100%{transform:scaleX(1); opacity:0}
+}
+
+/* content fade-in after sweep */
+.pack.settling .pack-name,
+.pack.settling .pack-meta{
+  animation:contentIn 220ms cubic-bezier(0.4,0,0.2,1) 200ms both;
+}
+@keyframes contentIn{
+  0%  {opacity:0; transform:translateY(4px)}
+  100%{opacity:1; transform:translateY(0)}
+}
+
+/* subtle settle pulse on the pack itself — no bounce */
+.pack.settle{
+  animation:settle 380ms cubic-bezier(0.22,0.61,0.36,1);
+}
+@keyframes settle{
+  0%  {filter:brightness(1.25)}
+  100%{filter:brightness(1)}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .pack.rolling .pack-name{animation:none}
+  .pack.settling .sweep{animation:none; opacity:0}
+  .pack.settling .pack-name,
+  .pack.settling .pack-meta{animation:none}
+  .pack.settle{animation:none}
+}
+
+/* COMBINED LIST */
+.combined{
+  border:1px solid var(--frame-2);
+  background:linear-gradient(180deg,rgba(255,255,255,0.012),transparent),rgba(19,16,12,0.65);
+  border-radius:6px;
+  padding:14px 24px 16px;
+  opacity:0;
+  transform:translateY(12px);
+  transition:opacity .4s ease,transform .4s ease;
+  pointer-events:none;  /* stale list never accepts hover/clicks while hidden */
+}
+.combined.show{opacity:1;transform:translateY(0);pointer-events:auto}
+
+.combined-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--frame);
+  flex-wrap:wrap;
+  gap:16px;
+}
+.combined-title{
+  font-family:'IM Fell English SC',serif;
+  font-size:32px;
+  letter-spacing:0.1em;
+  color:var(--gold);
+}
+.combined-count{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  letter-spacing:0.2em;
+  color:var(--ink-dim);
+  text-transform:uppercase;
+}
+
+.card-grid{
+  column-width:280px;
+  column-gap:28px;
+  margin-bottom:14px;
+}
+.card-row{
+  display:grid;
+  grid-template-columns:42px 1fr auto;
+  gap:10px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;
+  padding:3px 0;
+  border-bottom:1px dotted rgba(168,153,122,0.12);
+  align-items:baseline;
+  break-inside:avoid;          /* keep a card row whole within its column */
+  page-break-inside:avoid;     /* legacy fallback */
+}
+.card-qty{
+  color:var(--gold-bright);
+  font-weight:700;
+  text-align:right;
+}
+.card-name{
+  color:var(--ink);
+  letter-spacing:0.01em;
+}
+.card-mana{
+  display:inline-flex;
+  gap:2px;
+  font-size:15px;
+  line-height:1;
+  align-items:center;
+}
+.card-mana .ms{vertical-align:middle}
+.card-mana .ms-cost{text-shadow:0 1px 1px rgba(0,0,0,0.5)}
+.card-row.basic .card-name{color:var(--ink-dim);font-style:italic}
+
+.action-bar{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.action-btn{
+  font-family:'Cinzel',serif;
+  font-weight:700;
+  font-size:16px;
+  letter-spacing:0.18em;
+  padding:12px 28px;
+  background:transparent;
+  border:1px solid var(--gold);
+  color:var(--gold-bright);
+  cursor:pointer;
+  text-transform:uppercase;
+  border-radius:3px;
+  flex:1;
+  min-width:240px;
+  transition: background 180ms cubic-bezier(0.4,0,0.2,1),
+              color 180ms cubic-bezier(0.4,0,0.2,1),
+              border-color 180ms cubic-bezier(0.4,0,0.2,1),
+              transform 80ms cubic-bezier(0.4,0,0.2,1),
+              box-shadow 180ms cubic-bezier(0.4,0,0.2,1);
+}
+.action-btn:hover{
+  background:var(--gold);
+  color:var(--bg);
+}
+.action-btn:active{
+  transform:translateY(1px);
+  box-shadow: inset 0 3px 10px rgba(0,0,0,0.4);
+}
+.action-btn.primary{
+  background:var(--gold);
+  color:var(--bg);
+}
+.action-btn.primary:hover{
+  background:var(--gold-bright);
+  box-shadow:0 0 40px rgba(240,199,92,0.4);
+}
+.action-btn.primary:active{
+  transform:translateY(1px);
+  box-shadow: inset 0 3px 12px rgba(0,0,0,0.35),
+              0 0 20px rgba(240,199,92,0.2);
+}
+.action-btn.copied{
+  background:#16a34a;
+  border-color:#16a34a;
+  color:#fff;
+}
+
+/* color modifiers */
+.pack[data-color="white"]{--c:var(--c-white)}
+.pack[data-color="blue"]{--c:var(--c-blue)}
+.pack[data-color="black"]{--c:var(--c-black)}
+.pack[data-color="red"]{--c:var(--c-red)}
+.pack[data-color="green"]{--c:var(--c-green)}
+.pack[data-color="multicolor"]{--c:#c9a24a}
+
+/* hide cards stage 0 */
+.stage-initial.hidden{display:none}
+
+/* HOVER CARD PREVIEW — floats near cursor, fades in once Scryfall image loads */
+.card-row{cursor:default}
+.card-row[data-set]{cursor:help}
+#hover-preview{
+  position:fixed;
+  width:320px;
+  height:auto;
+  pointer-events:none;
+  z-index:1000;
+  border-radius:14px;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,0.85),
+    0 0 0 1px rgba(201,162,74,0.35),
+    0 0 60px rgba(201,162,74,0.12);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 140ms ease;
+  background:#0a0806;  /* fallback while loading */
+  aspect-ratio:488/680;
+}
+#hover-preview.show{visibility:visible}
+#hover-preview.loaded{opacity:1}
+@media (prefers-reduced-motion: reduce){
+  #hover-preview{transition:none}
+}
+
+@media (max-width:1100px){
+  .packs{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="tint-layer is-left"  id="tint-left-1"></div>
+<div class="tint-layer is-left"  id="tint-left-2"></div>
+<div class="tint-layer is-right" id="tint-right-1"></div>
+<div class="tint-layer is-right" id="tint-right-2"></div>
+<canvas id="fx-canvas"></canvas>
+
+<div class="shell">
+  <header>
+    <div>
+      <span class="brand">jumpstart</span><span class="brand sub">randomizer</span>
+    </div>
+    <div class="stats" id="stats">— packs cargados</div>
+  </header>
+
+  <section class="stage-initial" id="stage-initial">
+    <h1 class="bigtitle">
+      DOS PACKS<br>UN MAZO
+      <span class="small">cuarenta cartas · destino aleatorio</span>
+    </h1>
+    <button class="roll-btn" id="roll-main">DALE</button>
+  </section>
+
+  <section class="stage-reveal" id="stage-reveal">
+    <div class="packs">
+      <div class="pack" id="pack-0" data-color="">
+        <span class="sweep"></span>
+        <div class="pack-head">
+          <span class="pack-label">pack 01</span>
+          <span class="pack-color-tag" data-tag></span>
+        </div>
+        <div>
+          <div class="pack-name" data-name>—</div>
+          <div class="pack-meta" data-meta></div>
+        </div>
+        <div class="pack-actions">
+          <button class="pack-btn" data-action="lock">LOCK</button>
+          <button class="pack-btn" data-action="reroll">RE-TIRAR ESTE</button>
+        </div>
+      </div>
+      <div class="pack" id="pack-1" data-color="">
+        <span class="sweep"></span>
+        <div class="pack-head">
+          <span class="pack-label">pack 02</span>
+          <span class="pack-color-tag" data-tag></span>
+        </div>
+        <div>
+          <div class="pack-name" data-name>—</div>
+          <div class="pack-meta" data-meta></div>
+        </div>
+        <div class="pack-actions">
+          <button class="pack-btn" data-action="lock">LOCK</button>
+          <button class="pack-btn" data-action="reroll">RE-TIRAR ESTE</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="combined" id="combined">
+      <div class="combined-head">
+        <span class="combined-title">mazo combinado</span>
+        <span class="combined-count" id="card-count">— cartas</span>
+      </div>
+      <div class="card-grid" id="card-grid"></div>
+      <div class="action-bar">
+        <button class="action-btn primary" id="copy-btn">COPIAR LISTA COMBINADA</button>
+        <button class="action-btn" id="reroll-all">VOLVER A TIRAR</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ========== CONFIG ========== */
+/* knobs for animation timings + feedback. tweak here without
+   hunting through the code. */
+const CONFIG = {
+  /* slot-machine reel animation (all ms) */
+  roll: {
+    cycleMs:       1300,  // total reel duration
+    tickMs:          70,  // pack-name flip interval during reel
+    staggerMs:      110,  // delay between settling slot 0 vs slot 1
+    cleanupMs:      600,  // when to strip .settling/.settle classes
+    afterBothMs:    260,  // when to unlock state.animating after both reels
+    afterSingleMs:  160,  // when to unlock after a single reroll
+  },
+  /* "COPIADO" toast duration on the copy button */
+  copyToastMs: 1400,
+};
+
+/* ========== DATA · pack decklists ========== */
+/* original JMP set (2020), 121 packs across 46 themes. embedded as markdown
+   for human readability; parsed at startup into the PACKS array. */
+
+const RAW_MARKDOWN = `# jumpstart decklists (original 2020)
+
+todas las listas oficiales del set jumpstart, organizadas por color. cada pack son 20 cartas. dos packs combinados = un mazo jugable de 40 cartas.
+
+**nota sobre las basic lands tematizadas:** las cartas tipo "Dragons Mountain", "Spirits Island", "Above the Clouds Island", etc. son arts especiales del set jumpstart (números #47-77). moxfield las reconoce, pero si te tira problemas al importar, reemplazá esa línea por una basic común del mismo tipo (Mountain, Island, Plains, Swamp, Forest) y sumá +1 al contador de basics.
+
+para importar en moxfield: new deck → paste → pegás el bloque completo del pack → save → copiás la url → la metés en el MTG Deck Loader bag de TTS.
+
+---
+
+## white (plains)
+
+### angels (1)
+\`\`\`
+1 Emancipation Angel
+1 Serra Angel
+1 Guardian Idol
+1 Angelic Edict
+1 Angelic Page
+1 Scroll of Avacyn
+1 Thriving Heath
+1 Voice of the Provinces
+1 Angels Plains
+1 Baneslayer Angel
+1 Angelic Ascension
+1 Feat of Resistance
+1 Anointed Chorister
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### angels (2)
+\`\`\`
+1 Linvala, Keeper of Silence
+1 Angelic Arbiter
+1 Emancipation Angel
+1 Serra Angel
+1 Guardian Idol
+1 Angelic Page
+1 Angelic Edict
+1 Scroll of Avacyn
+1 Take Heart
+1 Thriving Heath
+1 Angels Plains
+1 Angelic Ascension
+1 Anointed Chorister
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### basri
+\`\`\`
+1 Concordia Pegasus
+1 Knight of the Tusk
+1 Thriving Heath
+1 Basri Ket
+1 Basri's Lieutenant
+1 Tempered Veteran
+1 Siege Striker
+1 Faith's Fetters
+1 Basri's Solidarity
+1 Feat of Resistance
+1 Staunch Shieldmate
+1 Legion's Judgment
+1 Basri's Acolyte
+7 Plains
+\`\`\`
+
+### doctor (1)
+\`\`\`
+1 Faith's Fetters
+1 Brightmare
+1 Bulwark Giant
+1 Mesa Unicorn
+1 Take Heart
+1 Thriving Heath
+1 Doctor Plains
+1 Speaker of the Heavens
+1 Griffin Aerie
+1 Light of Promise
+1 Swift Response
+1 Revitalize
+1 Anointed Chorister
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### doctor (2)
+\`\`\`
+1 Revitalize
+1 Brightmare
+1 Stone Haven Pilgrim
+1 Angel of Mercy
+1 Moment of Heroism
+1 Thriving Heath
+1 Doctor Plains
+1 Speaker of the Heavens
+1 Griffin Aerie
+1 Light of Promise
+1 Secure the Scene
+1 Anointed Chorister
+1 Swift Response
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### doctor (3)
+\`\`\`
+1 Rhox Faithmender
+1 Brightmare
+1 Angel of Mercy
+1 Mesa Unicorn
+1 Moment of Heroism
+1 Thriving Heath
+1 Doctor Plains
+1 Griffin Aerie
+1 Light of Promise
+1 Faith's Fetters
+1 Swift Response
+1 Revitalize
+1 Anointed Chorister
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### doctor (4)
+\`\`\`
+1 Cradle of Vitality
+1 Path of Bravery
+1 Alabaster Mage
+1 Brightmare
+1 Stone Haven Pilgrim
+1 Angel of Mercy
+1 Bulwark Giant
+1 Thriving Heath
+1 Doctor Plains
+1 Griffin Aerie
+1 Swift Response
+1 Revitalize
+1 Anointed Chorister
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### dogs (1)
+\`\`\`
+1 Affa Guard Hound
+1 Release the Dogs
+1 Supply Runners
+1 Cathar's Companion
+1 Trusty Retriever
+1 Pacifism
+1 Thriving Heath
+1 Dogs Plains
+1 Pack Leader
+1 Selfless Savior
+1 Secure the Scene
+1 Feat of Resistance
+1 Alpine Watchdog
+1 Rambunctious Mutt
+6 Plains
+\`\`\`
+
+### dogs (2)
+\`\`\`
+1 Isamaru, Hound of Konda
+1 Affa Guard Hound
+1 Dauntless Onslaught
+1 Release the Dogs
+1 Supply Runners
+1 Cathar's Companion
+1 Trusty Retriever
+1 Pacifism
+1 Thriving Heath
+1 Dogs Plains
+1 Pack Leader
+1 Secure the Scene
+1 Alpine Watchdog
+1 Rambunctious Mutt
+6 Plains
+\`\`\`
+
+### enchanted (1)
+\`\`\`
+1 Kor Spiritdancer
+1 Blessed Spirits
+1 Face of Divinity
+1 Stone Haven Pilgrim
+1 Knightly Valor
+1 Forced Worship
+1 Trusty Retriever
+1 Indomitable Will
+1 Knight of the Tusk
+1 Thriving Heath
+1 Enchanted Plains
+1 Faith's Fetters
+1 Dub
+1 Anointed Chorister
+6 Plains
+\`\`\`
+
+### enchanted (2)
+\`\`\`
+1 Ajani's Chosen
+1 Celestial Mantle
+1 Blessed Spirits
+1 Face of Divinity
+1 Stone Haven Pilgrim
+1 Knightly Valor
+1 Bulwark Giant
+1 Forced Worship
+1 Trusty Retriever
+1 Indomitable Will
+1 Thriving Heath
+1 Enchanted Plains
+1 Faith's Fetters
+1 Staunch Shieldmate
+6 Plains
+\`\`\`
+
+### feathered friends (1)
+\`\`\`
+1 Healer's Hawk
+1 Steel-Plume Marshal
+1 Dauntless Onslaught
+1 Sky Tether
+1 Aerial Assault
+1 Moment of Heroism
+1 Thriving Heath
+1 Feathered Friends Plains
+1 Aven Gagglemaster
+1 Falconer Adept
+1 Concordia Pegasus
+1 Warded Battlements
+1 Gale Swooper
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### feathered friends (2)
+\`\`\`
+1 Concordia Pegasus
+1 Steel-Plume Marshal
+1 Sky Tether
+1 Healer's Hawk
+1 Tandem Tactics
+1 Thriving Heath
+1 Feathered Friends Plains
+1 Angelic Ascension
+1 Aven Gagglemaster
+1 Falconer Adept
+1 Warded Battlements
+1 Swift Response
+1 Gale Swooper
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### feathered friends (3)
+\`\`\`
+1 Angel of the Dire Hour
+1 Dauntless Onslaught
+1 Sky Tether
+1 Healer's Hawk
+1 Take Heart
+1 Thriving Heath
+1 Feathered Friends Plains
+1 Aven Gagglemaster
+1 Falconer Adept
+1 Concordia Pegasus
+1 Warded Battlements
+1 Swift Response
+1 Gale Swooper
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### feathered friends (4)
+\`\`\`
+1 Archon of Justice
+1 Archon of Redemption
+1 Aegis of the Heavens
+1 Dauntless Onslaught
+1 Sky Tether
+1 Aerial Assault
+1 Healer's Hawk
+1 Thriving Heath
+1 Feathered Friends Plains
+1 Falconer Adept
+1 Concordia Pegasus
+1 Warded Battlements
+1 Gale Swooper
+1 Celestial Enforcer
+6 Plains
+\`\`\`
+
+### heavily armored (1)
+\`\`\`
+1 Cathars' Crusade
+1 Patron of the Valiant
+1 Bulwark Giant
+1 Trusty Retriever
+1 Lightwalker
+1 Thriving Heath
+1 Heavily Armed Plains
+1 Tempered Veteran
+1 Siege Striker
+1 Basri's Solidarity
+1 Secure the Scene
+1 Feat of Resistance
+1 Makeshift Battalion
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### heavily armored (2)
+\`\`\`
+1 Cathars' Crusade
+1 Gird for Battle
+1 Patron of the Valiant
+1 Battlefield Promotion
+1 Bulwark Giant
+1 Trusty Retriever
+1 Lightwalker
+1 Thriving Heath
+1 Heavily Armed Plains
+1 Tempered Veteran
+1 Siege Striker
+1 Secure the Scene
+1 Makeshift Battalion
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### heavily armored (3)
+\`\`\`
+1 Mikaeus, the Lunarch
+1 Patron of the Valiant
+1 Supply Runners
+1 Battlefield Promotion
+1 Bulwark Giant
+1 Divine Arrow
+1 Trusty Retriever
+1 Lightwalker
+1 Thriving Heath
+1 Heavily Armed Plains
+1 Tempered Veteran
+1 Basri's Solidarity
+1 Makeshift Battalion
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### heavily armored (4)
+\`\`\`
+1 Duelist's Heritage
+1 High Sentinels of Arashin
+1 Long Road Home
+1 Supply Runners
+1 Bulwark Giant
+1 Trusty Retriever
+1 Lightwalker
+1 Thriving Heath
+1 Heavily Armed Plains
+1 Tempered Veteran
+1 Siege Striker
+1 Swift Response
+1 Makeshift Battalion
+1 Basri's Acolyte
+6 Plains
+\`\`\`
+
+### legion (1)
+\`\`\`
+1 Knight of the Tusk
+1 Blessed Sanctuary
+1 Path to Exile
+1 Inspired Charge
+1 Thriving Heath
+1 Raise the Alarm
+1 Legion Plains
+1 Selfless Savior
+1 Falconer Adept
+1 Basri's Solidarity
+1 Valorous Steed
+1 Daybreak Charger
+1 Makeshift Battalion
+1 Legion's Judgment
+6 Plains
+\`\`\`
+
+### legion (2)
+\`\`\`
+1 Inspiring Captain
+1 Release the Dogs
+1 Thriving Heath
+1 Raise the Alarm
+1 Legion Plains
+1 Glorious Anthem
+1 Siege Striker
+1 Faith's Fetters
+1 Basri's Solidarity
+1 Valorous Steed
+1 Daybreak Charger
+1 Makeshift Battalion
+1 Staunch Shieldmate
+1 Legion's Judgment
+6 Plains
+\`\`\`
+
+### legion (3)
+\`\`\`
+1 Legion's Judgment
+1 Release the Dogs
+1 Fortify
+1 Thriving Heath
+1 Raise the Alarm
+1 Legion Plains
+1 Glorious Anthem
+1 Siege Striker
+1 Faith's Fetters
+1 Basri's Solidarity
+1 Valorous Steed
+1 Daybreak Charger
+1 Makeshift Battalion
+1 Staunch Shieldmate
+6 Plains
+\`\`\`
+
+### legion (4)
+\`\`\`
+1 Lena, Selfless Champion
+1 Mentor of the Meek
+1 Fortify
+1 Thriving Heath
+1 Raise the Alarm
+1 Legion Plains
+1 Siege Striker
+1 Faith's Fetters
+1 Selfless Savior
+1 Basri's Solidarity
+1 Valorous Steed
+1 Daybreak Charger
+1 Makeshift Battalion
+1 Legion's Judgment
+6 Plains
+\`\`\`
+
+### unicorns
+\`\`\`
+1 Inspiring Unicorn
+1 Emiel the Blessed
+1 Blessed Sanctuary
+1 Brightmare
+1 Valorous Stance
+1 Cloudshift
+1 Inspired Charge
+1 Mesa Unicorn
+1 Ronom Unicorn
+1 Thriving Heath
+1 Unicorns Plains
+1 Faith's Fetters
+1 Valorous Steed
+1 Daybreak Charger
+6 Plains
+\`\`\`
+
+---
+
+## blue (island)
+
+### above the clouds (1)
+\`\`\`
+1 Warden of Evos Isle
+1 Inniaz, the Gale Force
+1 Thriving Isle
+1 Above the Clouds Island
+1 Unsubstantiate
+1 Rain of Revelation
+1 Tide Skimmer
+1 Keen Glidemaster
+1 Roaming Ghostlight
+1 Rookie Mistake
+1 Capture Sphere
+1 Wall of Runes
+1 Mistral Singer
+1 Lofty Denial
+6 Island
+\`\`\`
+
+### above the clouds (2)
+\`\`\`
+1 Serendib Efreet
+1 Inniaz, the Gale Force
+1 Talrand's Invocation
+1 Thriving Isle
+1 Above the Clouds Island
+1 Rain of Revelation
+1 Unsubstantiate
+1 Tide Skimmer
+1 Keen Glidemaster
+1 Capture Sphere
+1 Roaming Ghostlight
+1 Frost Breath
+1 Mistral Singer
+1 Wall of Runes
+1 Lofty Denial
+5 Island
+\`\`\`
+
+### above the clouds (3)
+\`\`\`
+1 Windreader Sphinx
+1 Warden of Evos Isle
+1 Thriving Isle
+1 Above the Clouds Island
+1 Rain of Revelation
+1 Unsubstantiate
+1 Tide Skimmer
+1 Keen Glidemaster
+1 Capture Sphere
+1 Roaming Ghostlight
+1 Frost Breath
+1 Wall of Runes
+1 Lofty Denial
+7 Island
+\`\`\`
+
+### above the clouds (4)
+\`\`\`
+1 Kira, Great Glass-Spinner
+1 Windstorm Drake
+1 Thriving Isle
+1 Above the Clouds Island
+1 Rain of Revelation
+1 Unsubstantiate
+1 Tide Skimmer
+1 Keen Glidemaster
+1 Roaming Ghostlight
+1 Rookie Mistake
+1 Capture Sphere
+1 Mistral Singer
+1 Wall of Runes
+1 Lofty Denial
+6 Island
+\`\`\`
+
+### archaeology (1)
+\`\`\`
+1 Chromatic Sphere
+1 Scholar of the Lost Trove
+1 Buried Ruin
+1 Hedron Archive
+1 Juggernaut
+1 Meteor Golem
+1 Thirst for Knowledge
+1 Aether Spellbomb
+1 Ancestral Statue
+2 Archaeomender
+1 Erratic Visionary
+1 Lightning-Core Excavator
+1 Thriving Isle
+1 Archaeology Island
+5 Island
+\`\`\`
+
+### archaeology (2)
+\`\`\`
+1 Dreamstone Hedron
+1 Scholar of the Lost Trove
+1 Buried Ruin
+1 Juggernaut
+1 Meteor Golem
+1 Thirst for Knowledge
+1 Aether Spellbomb
+1 Ancestral Statue
+2 Archaeomender
+1 Erratic Visionary
+1 Lightning-Core Excavator
+1 Terrarion
+1 Thriving Isle
+1 Archaeology Island
+5 Island
+\`\`\`
+
+### archaeology (3)
+\`\`\`
+1 Sharding Sphinx
+1 Vedalken Archmage
+1 Buried Ruin
+1 Hedron Archive
+1 Juggernaut
+1 Meteor Golem
+1 Thirst for Knowledge
+1 Aether Spellbomb
+1 Ancestral Statue
+2 Archaeomender
+1 Lightning-Core Excavator
+1 Thriving Isle
+1 Archaeology Island
+1 Prismite
+5 Island
+\`\`\`
+
+### archaeology (4)
+\`\`\`
+1 Scarecrone
+1 Buried Ruin
+1 Juggernaut
+1 Meteor Golem
+1 Scuttlemutt
+1 Thirst for Knowledge
+1 Aether Spellbomb
+2 Archaeomender
+1 Lightning-Core Excavator
+1 Thriving Isle
+1 Jousting Dummy
+1 Signpost Scarecrow
+1 Archaeology Island
+1 Short Sword
+5 Island
+\`\`\`
+
+### milling
+\`\`\`
+1 Bruvac the Grandiloquent
+1 Belltower Sphinx
+1 Reckless Scholar
+1 Wall of Lost Thoughts
+1 Selhoff Occultist
+1 Sweep Away
+1 Thought Collapse
+1 Thought Scour
+1 Thriving Isle
+1 Vedalken Entrancer
+1 Towering-Wave Mystic
+1 Milling Island
+1 Teferi's Tutelage
+1 Capture Sphere
+6 Island
+\`\`\`
+
+### pirates (1)
+\`\`\`
+1 Rishadan Airship
+1 Corsair Captain
+1 Chart a Course
+1 Coastal Piracy
+1 Departed Deckhand
+1 Spectral Sailor
+1 Kitesail Corsair
+1 Pirate's Cutlass
+1 Prosperous Pirates
+1 Sailor of Means
+1 Thriving Isle
+1 Voyage's End
+1 Waterknot
+1 Pirates Island
+6 Island
+\`\`\`
+
+### pirates (2)
+\`\`\`
+1 Departed Deckhand
+1 Corsair Captain
+1 Chart a Course
+1 Curious Obsession
+1 Spectral Sailor
+1 Kitesail Corsair
+1 Pirate's Cutlass
+1 Prosperous Pirates
+1 Rishadan Airship
+1 Sailor of Means
+1 Thriving Isle
+1 Pirates Island
+1 Capture Sphere
+1 Read the Tides
+6 Island
+\`\`\`
+
+### spirits (1)
+\`\`\`
+1 Battleground Geist
+1 Departed Deckhand
+1 Essence Flux
+1 Nebelgast Herald
+1 Befuddle
+1 Murmuring Phantasm
+1 Thriving Isle
+1 Winged Words
+1 Spirits Island
+1 Shacklegeist
+1 Capture Sphere
+1 Roaming Ghostlight
+1 Frost Breath
+1 Tome Anima
+6 Island
+\`\`\`
+
+### spirits (2)
+\`\`\`
+1 Rattlechains
+1 Battleground Geist
+1 Departed Deckhand
+1 Nebelgast Herald
+1 Thriving Isle
+1 Winged Words
+1 Spirits Island
+1 Shacklegeist
+1 Rewind
+1 Capture Sphere
+1 Roaming Ghostlight
+1 Rookie Mistake
+1 Frost Breath
+1 Tome Anima
+6 Island
+\`\`\`
+
+### teferi
+\`\`\`
+1 Exclude
+1 Talrand's Invocation
+1 Leave in the Dust
+1 Prescient Chimera
+1 Sage's Row Savant
+1 Thriving Isle
+1 Teferi, Master of Time
+1 Teferi's Ageless Insight
+1 Tolarian Kraken
+1 Teferi's Tutelage
+1 Opt
+1 Vodalian Arcanist
+1 Teferi's Protege
+7 Island
+\`\`\`
+
+### under the sea (1)
+\`\`\`
+1 Sigiled Starfish
+1 Unstable Obelisk
+1 Octoprophet
+1 Thriving Isle
+1 Voyage's End
+1 Waterknot
+1 Wishful Merfolk
+1 Aegis Turtle
+1 Under the Sea Island
+1 Pursued Whale
+1 Tolarian Kraken
+1 Waker of Waves
+1 Rousing Read
+7 Island
+\`\`\`
+
+### under the sea (2)
+\`\`\`
+1 Whelming Wave
+1 Cryptic Serpent
+1 Sigiled Starfish
+1 Unstable Obelisk
+1 Octoprophet
+1 Sweep Away
+1 Thriving Isle
+1 Waterknot
+1 Wishful Merfolk
+1 Aegis Turtle
+1 Under the Sea Island
+1 Pursued Whale
+1 Waker of Waves
+7 Island
+\`\`\`
+
+### well-read (1)
+\`\`\`
+1 Suspicious Bookcase
+1 Ormos, Archive Keeper
+1 Curiosity
+1 Oneirophage
+1 Erratic Visionary
+1 Narcolepsy
+1 Runed Servitor
+1 Thriving Isle
+1 Well-Read Island
+1 Tolarian Kraken
+1 Tome Anima
+1 Library Larcenist
+1 Rousing Read
+1 Opt
+6 Island
+\`\`\`
+
+### well-read (2)
+\`\`\`
+1 Arcane Encyclopedia
+1 Ormos, Archive Keeper
+1 Curiosity
+1 Oneirophage
+1 Erratic Visionary
+1 Runed Servitor
+1 Thriving Isle
+1 Well-Read Island
+1 Tolarian Kraken
+1 Capture Sphere
+1 Tome Anima
+1 Library Larcenist
+1 Rousing Read
+1 Opt
+6 Island
+\`\`\`
+
+### well-read (3)
+\`\`\`
+1 Rhystic Study
+1 Curiosity
+1 Oneirophage
+1 Suspicious Bookcase
+1 Cloudreader Sphinx
+1 Erratic Visionary
+1 Narcolepsy
+1 Runed Servitor
+1 Thriving Isle
+1 Well-Read Island
+1 Tolarian Kraken
+1 Tome Anima
+1 Library Larcenist
+1 Opt
+6 Island
+\`\`\`
+
+### well-read (4)
+\`\`\`
+1 Mystic Archaeologist
+1 Read the Runes
+1 Curiosity
+1 Oneirophage
+1 Suspicious Bookcase
+1 Cloudreader Sphinx
+1 Runed Servitor
+1 Thriving Isle
+1 Well-Read Island
+1 Tolarian Kraken
+1 Capture Sphere
+1 Tome Anima
+1 Library Larcenist
+1 Opt
+6 Island
+\`\`\`
+
+### wizards (1)
+\`\`\`
+1 Talrand, Sky Summoner
+1 Exclusion Mage
+1 Talrand's Invocation
+1 Wizard's Retort
+1 Befuddle
+1 Sage's Row Savant
+1 Thriving Isle
+1 Winged Words
+1 Wizards Island
+1 Shipwreck Dowser
+1 Frost Breath
+1 Opt
+1 Vodalian Arcanist
+1 Read the Tides
+6 Island
+\`\`\`
+
+### wizards (2)
+\`\`\`
+1 Riptide Laboratory
+1 Exclusion Mage
+1 Talrand's Invocation
+1 Wizard's Retort
+1 Crookclaw Transmuter
+1 Sage's Row Savant
+1 Sea Gate Oracle
+1 Thriving Isle
+1 Winged Words
+1 Wizards Island
+1 Shipwreck Dowser
+1 Rookie Mistake
+1 Opt
+1 Vodalian Arcanist
+1 Read the Tides
+5 Island
+\`\`\`
+
+### wizards (3)
+\`\`\`
+1 Talrand, Sky Summoner
+1 Talrand's Invocation
+1 Wizard's Retort
+1 Sage's Row Savant
+1 Thriving Isle
+1 Winged Words
+1 Wizards Island
+1 Shipwreck Dowser
+1 Unsubstantiate
+1 Capture Sphere
+1 Opt
+1 Vodalian Arcanist
+1 Read the Tides
+1 Teferi's Protege
+6 Island
+\`\`\`
+
+### wizards (4)
+\`\`\`
+1 Talrand's Invocation
+1 Wizard's Retort
+1 Sage's Row Savant
+1 Peel from Reality
+1 Storm Sculptor
+1 Thriving Isle
+1 Wizards Island
+1 Barrin, Tolarian Archmage
+1 Shipwreck Dowser
+1 Rain of Revelation
+1 Frost Breath
+1 Vodalian Arcanist
+1 Read the Tides
+1 Teferi's Protege
+6 Island
+\`\`\`
+
+---
+
+## black (swamp)
+
+### discarding (1)
+\`\`\`
+1 Fell Specter
+1 Tinybones, Trinket Thief
+1 Assassin's Strike
+1 Ravenous Chupacabra
+1 Entomber Exarch
+1 Burglar Rat
+1 Death's Approach
+1 Phyrexian Rager
+1 Slate Street Ruffian
+1 Thriving Moor
+2 Wight of Precinct Six
+1 Mind Rot
+7 Swamp
+\`\`\`
+
+### discarding (2)
+\`\`\`
+1 Liliana's Reaver
+1 Nyxathid
+1 Assassin's Strike
+1 Fell Specter
+1 Ravenous Chupacabra
+1 Entomber Exarch
+1 Burglar Rat
+1 Death's Approach
+1 Phyrexian Rager
+1 Slate Street Ruffian
+1 Thriving Moor
+2 Wight of Precinct Six
+7 Swamp
+\`\`\`
+
+### liliana
+\`\`\`
+1 Liliana's Elite
+1 Settle the Score
+1 Blighted Bat
+1 Cemetery Recruitment
+1 Ghoulraiser
+1 Thriving Moor
+1 Wailing Ghoul
+1 Liliana, Waker of the Dead
+1 Liliana's Standard Bearer
+1 Goremand
+1 Liliana's Devotee
+1 Rise Again
+1 Liliana's Steward
+7 Swamp
+\`\`\`
+
+### minions (1)
+\`\`\`
+1 Ghoulcaller's Accomplice
+1 Kels, Fight Fixer
+1 Bone Picker
+1 Innocent Blood
+1 Dutiful Attendant
+1 Nocturnal Feeder
+1 Shambling Goblin
+1 Thriving Moor
+1 Minions Swamp
+1 Witch's Cauldron
+1 Eliminate
+1 Goremand
+1 Crypt Lurker
+1 Village Rites
+6 Swamp
+\`\`\`
+
+### minions (2)
+\`\`\`
+1 Eternal Taskmaster
+1 Kels, Fight Fixer
+1 Bone Splinters
+1 Drainpipe Vermin
+1 Dutiful Attendant
+1 Ghoulcaller's Accomplice
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Minions Swamp
+1 Witch's Cauldron
+1 Eliminate
+1 Goremand
+1 Crypt Lurker
+1 Village Rites
+6 Swamp
+\`\`\`
+
+### minions (3)
+\`\`\`
+1 Dutiful Attendant
+1 Phyrexian Tower
+1 Drainpipe Vermin
+1 Ghoulcaller's Accomplice
+1 Launch Party
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Minions Swamp
+1 Witch's Cauldron
+1 Eliminate
+1 Goremand
+1 Liliana's Devotee
+1 Fetid Imp
+1 Crypt Lurker
+1 Village Rites
+5 Swamp
+\`\`\`
+
+### minions (4)
+\`\`\`
+1 Ghoulcaller Gisa
+1 Innocent Blood
+1 Dutiful Attendant
+1 Ghoulcaller's Accomplice
+1 Nocturnal Feeder
+1 Shambling Goblin
+1 Thriving Moor
+1 Minions Swamp
+1 Witch's Cauldron
+1 Eliminate
+1 Goremand
+1 Liliana's Devotee
+1 Fetid Imp
+1 Village Rites
+6 Swamp
+\`\`\`
+
+### phyrexian
+\`\`\`
+1 Sheoldred, Whispering One
+1 Entomber Exarch
+1 Phyrexian Gargantua
+1 Phyrexian Reclamation
+1 Douse in Gloom
+1 Myr Sire
+1 Parasitic Implant
+1 Perilous Myr
+1 Phyrexian Broodlings
+1 Phyrexian Debaser
+1 Phyrexian Rager
+1 Thriving Moor
+1 Phyrexian Swamp
+1 Malefic Scythe
+6 Swamp
+\`\`\`
+
+### reanimated (1)
+\`\`\`
+1 Reanimate
+1 Mire Triton
+1 Cadaver Imp
+1 Crow of Dark Tidings
+1 Funeral Rites
+1 Miasmic Mummy
+1 Thriving Moor
+1 Tithebearer Giant
+1 Reanimated Swamp
+1 Archfiend's Vessel
+1 Goremand
+1 Eliminate
+1 Crypt Lurker
+1 Rise Again
+6 Swamp
+\`\`\`
+
+### reanimated (2)
+\`\`\`
+1 Mire Triton
+1 Reanimate
+1 Crow of Dark Tidings
+1 Funeral Rites
+1 Macabre Waltz
+1 Miasmic Mummy
+1 Thriving Moor
+1 Reanimated Swamp
+1 Carrion Grub
+1 Goremand
+1 Eliminate
+1 Crypt Lurker
+1 Rise Again
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### reanimated (3)
+\`\`\`
+1 Gravewaker
+1 Scourge of Nel Toth
+1 Mire Triton
+1 Zombie Infestation
+1 Crow of Dark Tidings
+1 Exhume
+1 Funeral Rites
+1 Miasmic Mummy
+1 Thriving Moor
+1 Reanimated Swamp
+1 Goremand
+1 Eliminate
+1 Crypt Lurker
+1 Rise Again
+6 Swamp
+\`\`\`
+
+### reanimated (4)
+\`\`\`
+1 Rise of the Dark Realms
+1 Mire Triton
+1 Crow of Dark Tidings
+1 Funeral Rites
+1 Miasmic Mummy
+1 Soul Salvage
+1 Thriving Moor
+1 Reanimated Swamp
+1 Carrion Grub
+1 Goremand
+1 Eliminate
+1 Crypt Lurker
+1 Rise Again
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### rogues (1)
+\`\`\`
+1 Gonti, Lord of Luxury
+1 Mausoleum Turnkey
+1 Oona's Blackguard
+1 Rogue's Gloves
+1 Stab Wound
+1 Lawless Broker
+1 Nightshade Stinger
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Rogues Swamp
+1 Thieves' Guild Enforcer
+1 Alchemist's Gift
+1 Masked Blackguard
+1 Finishing Blow
+6 Swamp
+\`\`\`
+
+### rogues (2)
+\`\`\`
+1 Corpse Traders
+1 Oona's Blackguard
+1 Rogue's Gloves
+1 Stab Wound
+1 Corpse Hauler
+1 Lawless Broker
+1 Last Gasp
+1 Nightshade Stinger
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Rogues Swamp
+1 Thieves' Guild Enforcer
+1 Alchemist's Gift
+1 Masked Blackguard
+6 Swamp
+\`\`\`
+
+### spooky (1)
+\`\`\`
+1 Barter in Blood
+1 Bone Picker
+1 Eternal Taskmaster
+1 Gristle Grinner
+1 Dutiful Attendant
+1 Thriving Moor
+1 Spooky Swamp
+1 Liliana's Standard Bearer
+1 Malefic Scythe
+1 Crypt Lurker
+1 Caged Zombie
+1 Finishing Blow
+1 Fetid Imp
+1 Village Rites
+6 Swamp
+\`\`\`
+
+### spooky (2)
+\`\`\`
+1 Harvester of Souls
+1 Barter in Blood
+1 Bone Picker
+1 Eternal Taskmaster
+1 Gristle Grinner
+1 Bone Splinters
+1 Dutiful Attendant
+1 Sanitarium Skeleton
+1 Thriving Moor
+1 Spooky Swamp
+1 Malefic Scythe
+1 Crypt Lurker
+1 Caged Zombie
+1 Finishing Blow
+6 Swamp
+\`\`\`
+
+### spooky (3)
+\`\`\`
+1 Ogre Slumlord
+1 Languish
+1 Bone Picker
+1 Eternal Taskmaster
+1 Gristle Grinner
+1 Dutiful Attendant
+1 Thriving Moor
+1 Spooky Swamp
+1 Malefic Scythe
+1 Liliana's Devotee
+1 Crypt Lurker
+1 Caged Zombie
+1 Finishing Blow
+1 Fetid Imp
+6 Swamp
+\`\`\`
+
+### spooky (4)
+\`\`\`
+1 Black Market
+1 Bone Picker
+1 Eternal Taskmaster
+1 Gristle Grinner
+1 Dutiful Attendant
+1 Plagued Rusalka
+1 Sanitarium Skeleton
+1 Thriving Moor
+1 Spooky Swamp
+1 Malefic Scythe
+1 Liliana's Devotee
+1 Crypt Lurker
+1 Caged Zombie
+1 Finishing Blow
+6 Swamp
+\`\`\`
+
+### vampires (1)
+\`\`\`
+1 Blood Artist
+1 Bloodbond Vampire
+1 Gifted Aetherborn
+1 Agonizing Syphon
+1 Eternal Thirst
+1 Kalastria Nightwatch
+1 Last Gasp
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Vampires Swamp
+1 Vito, Thorn of the Dusk Rose
+1 Silversmote Ghoul
+1 Sanguine Indulgence
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### vampires (2)
+\`\`\`
+1 Blood Host
+1 Bloodbond Vampire
+1 Gifted Aetherborn
+1 Agonizing Syphon
+1 Child of Night
+1 Eternal Thirst
+1 Last Gasp
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Vampires Swamp
+1 Vito, Thorn of the Dusk Rose
+1 Silversmote Ghoul
+1 Sanguine Indulgence
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### vampires (3)
+\`\`\`
+1 Exquisite Blood
+1 Sangromancer
+1 Bloodbond Vampire
+1 Gifted Aetherborn
+1 Sengir Vampire
+1 Agonizing Syphon
+1 Last Gasp
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Vampire Neonate
+1 Vampires Swamp
+1 Silversmote Ghoul
+1 Sanguine Indulgence
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### vampires (4)
+\`\`\`
+1 Drana, Liberator of Malakir
+1 Bloodbond Vampire
+1 Falkenrath Noble
+1 Gifted Aetherborn
+1 Agonizing Syphon
+1 Child of Night
+1 Last Gasp
+1 Mark of the Vampire
+1 Nocturnal Feeder
+1 Thriving Moor
+1 Vampires Swamp
+1 Silversmote Ghoul
+1 Sanguine Indulgence
+1 Gloom Sower
+6 Swamp
+\`\`\`
+
+### witchcraft (1)
+\`\`\`
+1 Bogbrew Witch
+1 Witch of the Moors
+1 Bubbling Cauldron
+1 Malakir Familiar
+1 Tempting Witch
+1 Bake into a Pie
+1 Bloodhunter Bat
+1 Cauldron Familiar
+2 Festering Newt
+1 Thriving Moor
+1 Witchcraft Swamp
+1 Witch's Cauldron
+1 Finishing Blow
+6 Swamp
+\`\`\`
+
+### witchcraft (2)
+\`\`\`
+1 Tempting Witch
+1 Bogbrew Witch
+1 Witch of the Moors
+1 Blood Divination
+1 Bubbling Cauldron
+1 Swarm of Bloodflies
+1 Bake into a Pie
+1 Black Cat
+1 Bloodhunter Bat
+2 Festering Newt
+1 Last Gasp
+1 Thriving Moor
+1 Witchcraft Swamp
+6 Swamp
+\`\`\`
+
+---
+
+## red (mountain)
+
+### chandra
+\`\`\`
+1 Flames of the Firebrand
+1 Pyroclastic Elemental
+1 Young Pyromancer
+1 Fanatical Firebrand
+1 Hungry Flames
+1 Pillar of Flame
+1 Thriving Bluff
+1 Chandra, Heart of Fire
+1 Chandra's Incinerator
+1 Chandra's Pyreling
+2 Chandra's Magmutt
+1 Thrill of Possibility
+7 Mountain
+\`\`\`
+
+### devilish (1)
+\`\`\`
+1 Forge Devil
+1 Zurzoth, Chaos Rider
+1 Dance with Devils
+1 Chained Brute
+1 Spiteful Prankster
+1 Collateral Damage
+1 Heartfire
+1 Thriving Bluff
+1 Torch Fiend
+1 Devilish Mountain
+1 Traitorous Greed
+1 Havoc Jester
+1 Hobblefiend
+1 Pitchburn Devils
+6 Mountain
+\`\`\`
+
+### devilish (2)
+\`\`\`
+1 Tibalt's Rager
+1 Zurzoth, Chaos Rider
+1 Chained Brute
+1 Spiteful Prankster
+1 Collateral Damage
+1 Heartfire
+1 Thriving Bluff
+2 Torch Fiend
+1 Devilish Mountain
+1 Traitorous Greed
+1 Havoc Jester
+1 Hobblefiend
+1 Pitchburn Devils
+6 Mountain
+\`\`\`
+
+### devilish (3)
+\`\`\`
+1 Dance with Devils
+1 Chained Brute
+1 Spiteful Prankster
+1 Act of Treason
+1 Collateral Damage
+1 Lightning-Core Excavator
+1 Thriving Bluff
+1 Torch Fiend
+1 Devilish Mountain
+1 Brash Taunter
+1 Traitorous Greed
+1 Havoc Jester
+1 Hobblefiend
+1 Pitchburn Devils
+6 Mountain
+\`\`\`
+
+### devilish (4)
+\`\`\`
+1 Hellrider
+1 Sin Prodder
+1 Barrage of Expendables
+1 Chained Brute
+1 Spiteful Prankster
+1 Act of Treason
+1 Collateral Damage
+1 Lightning-Core Excavator
+1 Thriving Bluff
+1 Devilish Mountain
+1 Traitorous Greed
+1 Havoc Jester
+1 Hobblefiend
+1 Pitchburn Devils
+6 Mountain
+\`\`\`
+
+### dragons (1)
+\`\`\`
+1 Dragonloft Idol
+1 Rapacious Dragon
+1 Draconic Roar
+1 Dragonspeaker Shaman
+1 Bathe in Dragonfire
+1 Dragon Fodder
+1 Dragon Hatchling
+1 Lightning Shrieker
+1 Thriving Bluff
+1 Dragons Mountain
+1 Terror of the Peaks
+1 Hellkite Punisher
+1 Thrill of Possibility
+7 Mountain
+\`\`\`
+
+### dragons (2)
+\`\`\`
+1 Lathliss, Dragon Queen
+1 Rapacious Dragon
+1 Draconic Roar
+1 Dragonlord's Servant
+1 Furnace Whelp
+1 Dragon Fodder
+1 Dragon Hatchling
+1 Lightning Shrieker
+1 Sarkhan's Rage
+1 Thriving Bluff
+1 Dragons Mountain
+1 Gadrak, the Crown-Scourge
+1 Hellkite Punisher
+7 Mountain
+\`\`\`
+
+### goblins (1)
+\`\`\`
+1 Beetleback Chief
+1 Muxus, Goblin Grandee
+1 Goblin Commando
+1 Makeshift Munitions
+1 Volley Veteran
+1 Boggart Brute
+1 Goblin Instigator
+1 Goblin Shortcutter
+1 Ornery Goblin
+1 Outnumber
+1 Thriving Bluff
+1 Goblins Mountain
+1 Goblin Arsonist
+1 Shock
+6 Mountain
+\`\`\`
+
+### goblins (2)
+\`\`\`
+1 Goblin Instigator
+1 Muxus, Goblin Grandee
+1 Beetleback Chief
+1 Goblin Commando
+1 Makeshift Munitions
+1 Boggart Brute
+1 Goblin Shortcutter
+1 Ornery Goblin
+1 Outnumber
+1 Thriving Bluff
+1 Goblins Mountain
+1 Battle-Rattle Shaman
+1 Burn Bright
+1 Goblin Arsonist
+6 Mountain
+\`\`\`
+
+### goblins (3)
+\`\`\`
+1 Goblin Chieftain
+1 Goblin Goon
+1 Beetleback Chief
+1 Goblin Commando
+1 Makeshift Munitions
+1 Volley Veteran
+1 Boggart Brute
+1 Goblin Instigator
+1 Goblin Shortcutter
+1 Ornery Goblin
+1 Thriving Bluff
+1 Goblins Mountain
+1 Goblin Arsonist
+1 Shock
+6 Mountain
+\`\`\`
+
+### goblins (4)
+\`\`\`
+1 Krenko, Mob Boss
+1 Goblin Commando
+1 Goblin Lore
+1 Goblin Rally
+1 Makeshift Munitions
+1 Boggart Brute
+1 Goblin Instigator
+1 Goblin Shortcutter
+1 Ornery Goblin
+1 Outnumber
+1 Thriving Bluff
+1 Goblins Mountain
+1 Burn Bright
+1 Goblin Arsonist
+6 Mountain
+\`\`\`
+
+### lightning (1)
+\`\`\`
+1 Weaver of Lightning
+1 Lightning Phoenix
+1 Homing Lightning
+1 Lightning Axe
+1 Living Lightning
+1 Lightning Bolt
+2 Lightning Visionary
+1 Lightning Diadem
+1 Lightning Elemental
+1 Lightning Shrieker
+1 Lightning-Core Excavator
+1 Thriving Bluff
+1 Lightning Mountain
+6 Mountain
+\`\`\`
+
+### lightning (2)
+\`\`\`
+1 Ball Lightning
+1 Lightning Phoenix
+1 Chain Lightning
+1 Lightning Axe
+1 Living Lightning
+1 Riddle of Lightning
+1 Weaver of Lightning
+2 Lightning Visionary
+1 Lightning Diadem
+1 Lightning Elemental
+1 Lightning-Core Excavator
+1 Thriving Bluff
+1 Lightning Mountain
+6 Mountain
+\`\`\`
+
+### minotaurs (1)
+\`\`\`
+1 Bloodrage Brawler
+1 Sethron, Hurloon General
+1 Herald's Horn
+1 Warfire Javelineer
+1 Borderland Minotaur
+1 Flurry of Horns
+1 Lightning Visionary
+1 Minotaur Skullcleaver
+1 Minotaur Sureshot
+1 Mugging
+1 Thriving Bluff
+1 Minotaurs Mountain
+1 Soul Sear
+1 Sure Strike
+6 Mountain
+\`\`\`
+
+### minotaurs (2)
+\`\`\`
+1 Rageblood Shaman
+1 Sethron, Hurloon General
+1 Bloodrage Brawler
+1 Borderland Minotaur
+1 Flurry of Horns
+1 Lightning Visionary
+1 Minotaur Skullcleaver
+1 Minotaur Sureshot
+1 Thriving Bluff
+1 Minotaurs Mountain
+1 Unleash Fury
+1 Traitorous Greed
+1 Soul Sear
+1 Sure Strike
+6 Mountain
+\`\`\`
+
+### seismic
+\`\`\`
+1 Grim Lavamancer
+1 Magmaquake
+1 Cinder Elemental
+1 Magma Jet
+1 Seismic Elemental
+1 Volcanic Fallout
+1 Ashmouth Hound
+1 Bloodrock Cyclops
+1 Mana Geode
+1 Molten Ravager
+1 Spitting Earth
+1 Thriving Bluff
+1 Seismic Mountain
+1 Volcanic Geyser
+6 Mountain
+\`\`\`
+
+### smashing (1)
+\`\`\`
+1 Bloodrage Brawler
+1 Flametongue Kavu
+1 Borderland Marauder
+1 Fling
+1 Thriving Bluff
+1 Smashing Mountain
+1 Volcanic Salvo
+1 Furious Rise
+1 Unleash Fury
+1 Heartfire Immolator
+1 Onakke Ogre
+1 Shock
+1 Turret Ogre
+1 Bone Pit Brute
+6 Mountain
+\`\`\`
+
+### smashing (2)
+\`\`\`
+1 Bloodrage Brawler
+1 Flames of the Raze-Boar
+1 Borderland Marauder
+1 Fling
+1 Hungry Flames
+1 Thriving Bluff
+1 Smashing Mountain
+1 Volcanic Salvo
+1 Furious Rise
+1 Heartfire Immolator
+1 Onakke Ogre
+1 Short Sword
+1 Turret Ogre
+1 Bone Pit Brute
+6 Mountain
+\`\`\`
+
+### smashing (3)
+\`\`\`
+1 Hamletback Goliath
+1 Sarkhan's Unsealing
+1 Bloodrage Brawler
+1 Inferno Hellion
+1 Borderland Marauder
+1 Fling
+1 Thriving Bluff
+1 Smashing Mountain
+1 Furious Rise
+1 Unleash Fury
+1 Heartfire Immolator
+1 Onakke Ogre
+1 Turret Ogre
+1 Bone Pit Brute
+6 Mountain
+\`\`\`
+
+### smashing (4)
+\`\`\`
+1 Etali, Primal Storm
+1 Bloodrage Brawler
+1 Bloodshot Trainee
+1 Borderland Marauder
+1 Fling
+1 Hungry Flames
+1 Thriving Bluff
+1 Smashing Mountain
+1 Furious Rise
+1 Heartfire Immolator
+1 Furor of the Bitten
+1 Onakke Ogre
+1 Turret Ogre
+1 Bone Pit Brute
+6 Mountain
+\`\`\`
+
+### spellcasting (1)
+\`\`\`
+1 Thermo-Alchemist
+1 Living Lightning
+1 Blindblast
+1 Hungry Flames
+1 Lightning Visionary
+1 Thriving Bluff
+1 Spellcasting Mountain
+1 Double Vision
+1 Chandra's Pyreling
+1 Kinetic Augur
+1 Heartfire Immolator
+1 Goblin Wizardry
+1 Shock
+1 Thrill of Possibility
+6 Mountain
+\`\`\`
+
+### spellcasting (2)
+\`\`\`
+1 Young Pyromancer
+1 Flame Lash
+1 Hungry Flames
+1 Kiln Fiend
+1 Lightning Visionary
+1 Thermo-Alchemist
+1 Thriving Bluff
+1 Spellcasting Mountain
+1 Double Vision
+1 Chandra's Pyreling
+1 Kinetic Augur
+1 Heartfire Immolator
+1 Shock
+1 Thrill of Possibility
+6 Mountain
+\`\`\`
+
+### spellcasting (3)
+\`\`\`
+1 Charmbreaker Devils
+1 Dualcaster Mage
+1 Living Lightning
+1 Dragon Fodder
+1 Hungry Flames
+1 Lightning Visionary
+1 Thermo-Alchemist
+1 Thriving Bluff
+1 Spellcasting Mountain
+1 Chandra's Pyreling
+1 Kinetic Augur
+1 Heartfire Immolator
+1 Shock
+1 Thrill of Possibility
+6 Mountain
+\`\`\`
+
+### spellcasting (4)
+\`\`\`
+1 Doublecast
+1 Immolating Gyre
+1 Hungry Flames
+1 Kiln Fiend
+1 Lightning Visionary
+1 Thermo-Alchemist
+1 Thriving Bluff
+1 Spellcasting Mountain
+1 Chandra's Pyreling
+1 Kinetic Augur
+1 Heartfire Immolator
+1 Crash Through
+1 Shock
+1 Thrill of Possibility
+6 Mountain
+\`\`\`
+
+---
+
+## green (forest)
+
+### cats (1)
+\`\`\`
+1 Enlarge
+1 Keeper of Fables
+1 Nature's Way
+1 Crushing Canopy
+1 Feral Invocation
+1 Initiate's Companion
+1 Pouncing Cheetah
+1 Thriving Grove
+1 Feral Prowler
+1 Cats Forest
+1 Feline Sovereign
+1 Canopy Stalker
+1 Sabertooth Mauler
+1 Pridemalkin
+6 Forest
+\`\`\`
+
+### cats (2)
+\`\`\`
+1 Lurking Predators
+1 Enlarge
+1 Keeper of Fables
+1 Nature's Way
+1 Crushing Canopy
+1 Feral Invocation
+1 Initiate's Companion
+1 Penumbra Bobcat
+1 Thriving Grove
+1 Feral Prowler
+1 Cats Forest
+1 Feline Sovereign
+1 Canopy Stalker
+1 Pridemalkin
+6 Forest
+\`\`\`
+
+### dinosaurs (1)
+\`\`\`
+1 Ghalta, Primal Hunger
+1 Drover of the Mighty
+1 Savage Stomp
+1 Commune with Dinosaurs
+1 Crushing Canopy
+1 Orazca Frillback
+1 Thriving Grove
+1 Dinosaurs Forest
+1 Thrashing Brontodon
+1 Cultivate
+1 Colossal Dreadmaw
+1 Setessan Training
+1 Ornery Dilophosaur
+1 Drowsing Tyrannodon
+6 Forest
+\`\`\`
+
+### dinosaurs (2)
+\`\`\`
+1 Selvala, Heart of the Wilds
+1 Drover of the Mighty
+1 Savage Stomp
+1 Thundering Spineback
+1 Commune with Dinosaurs
+1 Crushing Canopy
+1 New Horizons
+1 Orazca Frillback
+1 Thriving Grove
+1 Dinosaurs Forest
+1 Garruk's Uprising
+1 Colossal Dreadmaw
+1 Ornery Dilophosaur
+1 Drowsing Tyrannodon
+6 Forest
+\`\`\`
+
+### dinosaurs (3)
+\`\`\`
+1 Ghalta, Primal Hunger
+1 Drover of the Mighty
+1 Savage Stomp
+1 Thundering Spineback
+1 Commune with Dinosaurs
+1 Crushing Canopy
+1 Orazca Frillback
+1 Thriving Grove
+1 Dinosaurs Forest
+1 Cultivate
+1 Colossal Dreadmaw
+1 Titanic Growth
+1 Ornery Dilophosaur
+1 Drowsing Tyrannodon
+6 Forest
+\`\`\`
+
+### dinosaurs (4)
+\`\`\`
+1 Rampaging Brontodon
+1 Drover of the Mighty
+1 Savage Stomp
+1 Commune with Dinosaurs
+1 New Horizons
+1 Orazca Frillback
+1 Thriving Grove
+1 Dinosaurs Forest
+1 Primal Might
+1 Thrashing Brontodon
+1 Garruk's Uprising
+1 Colossal Dreadmaw
+1 Ornery Dilophosaur
+1 Drowsing Tyrannodon
+6 Forest
+\`\`\`
+
+### elves (1)
+\`\`\`
+1 Craterhoof Behemoth
+1 Elvish Archdruid
+1 Dwynen's Elite
+1 Ghirapur Guide
+1 Silhana Wayfinder
+1 Crushing Canopy
+1 Presence of Gond
+1 Thriving Grove
+1 Wildheart Invoker
+1 Elves Forest
+1 Skyway Sniper
+1 Llanowar Visionary
+1 Hunter's Edge
+1 Titanic Growth
+6 Forest
+\`\`\`
+
+### elves (2)
+\`\`\`
+1 Dwynen's Elite
+1 Allosaurus Shepherd
+1 Silhana Wayfinder
+1 Wren's Run Vanquisher
+1 Crushing Canopy
+1 Leaf Gilder
+1 Presence of Gond
+1 Thriving Grove
+1 Wildheart Invoker
+1 Elves Forest
+1 Skyway Sniper
+1 Llanowar Visionary
+1 Hunter's Edge
+1 Titanic Growth
+6 Forest
+\`\`\`
+
+### garruk
+\`\`\`
+1 Affectionate Indrik
+1 Brushstrider
+1 Hunter's Insight
+1 Rumbling Baloth
+1 Orazca Frillback
+1 Thriving Grove
+1 Garruk, Unleashed
+1 Garruk's Harbinger
+1 Garruk's Uprising
+1 Hunter's Edge
+1 Ranger's Guile
+1 Garruk's Gorehorn
+1 Drowsing Tyrannodon
+7 Forest
+\`\`\`
+
+### lands (1)
+\`\`\`
+1 Ulvenwald Hydra
+1 Awakener Druid
+1 Feral Hydra
+1 Zendikar's Roil
+1 Crushing Canopy
+1 Elemental Uprising
+1 Fa'adiyah Seer
+1 Fertilid
+1 Sylvan Ranger
+1 Thriving Grove
+1 Vastwood Zendikon
+1 Wildheart Invoker
+1 Lands Forest
+1 Cultivate
+6 Forest
+\`\`\`
+
+### lands (2)
+\`\`\`
+1 Oracle of Mul Daya
+1 Awakener Druid
+1 Feral Hydra
+1 Woodborn Behemoth
+1 Crushing Canopy
+1 Elemental Uprising
+1 Fa'adiyah Seer
+1 Fertilid
+1 Sporemound
+1 Sylvan Ranger
+1 Thriving Grove
+1 Wildheart Invoker
+1 Lands Forest
+1 Cultivate
+6 Forest
+\`\`\`
+
+### plus one (1)
+\`\`\`
+1 Primeval Bounty
+1 Armorcraft Judge
+1 Nessian Hornbeetle
+1 Arbor Armament
+1 Ironshell Beetle
+1 Fertilid
+1 Thriving Grove
+1 Plus One Forest
+1 Invigorating Surge
+1 Wildwood Scourge
+1 Trufflesnout
+1 Hunter's Edge
+1 Pridemalkin
+7 Forest
+\`\`\`
+
+### plus one (2)
+\`\`\`
+1 Armorcraft Judge
+1 Branching Evolution
+1 Nessian Hornbeetle
+1 Arbor Armament
+1 Fertilid
+1 Ironshell Beetle
+1 Thriving Grove
+1 Plus One Forest
+1 Invigorating Surge
+1 Wildwood Scourge
+1 Trufflesnout
+1 Hunter's Edge
+1 Pridemalkin
+7 Forest
+\`\`\`
+
+### plus one (3)
+\`\`\`
+1 Rishkar, Peema Renegade
+1 Inspiring Call
+1 Nessian Hornbeetle
+1 Arbor Armament
+1 Fertilid
+1 Scrounging Bandar
+1 Thriving Grove
+1 Plus One Forest
+1 Invigorating Surge
+1 Wildwood Scourge
+1 Trufflesnout
+1 Hunter's Edge
+1 Pridemalkin
+7 Forest
+\`\`\`
+
+### plus one (4)
+\`\`\`
+1 Champion of Lambholt
+1 Branching Evolution
+1 Lifecrafter's Gift
+1 Nessian Hornbeetle
+1 Arbor Armament
+1 Scrounging Bandar
+1 Thriving Grove
+1 Plus One Forest
+1 Invigorating Surge
+1 Wildwood Scourge
+1 Trufflesnout
+1 Hunter's Edge
+1 Pridemalkin
+7 Forest
+\`\`\`
+
+### predatory (1)
+\`\`\`
+1 Somberwald Stag
+1 Sylvan Brushstrider
+1 Neyith of the Dire Hunt
+1 Brindle Shoat
+1 Irresistible Prey
+1 Crushing Canopy
+1 Dawntreader Elk
+1 Marauder's Axe
+1 Thriving Grove
+1 Time to Feed
+1 Time to Feed Forest
+1 Fungal Rebirth
+1 Trufflesnout
+1 Sabertooth Mauler
+6 Forest
+\`\`\`
+
+### predatory (2)
+\`\`\`
+1 Gingerbrute
+1 Neyith of the Dire Hunt
+1 Affectionate Indrik
+1 Brindle Shoat
+1 Irresistible Prey
+1 Crushing Canopy
+1 Dawntreader Elk
+1 Marauder's Axe
+1 Thriving Grove
+1 Time to Feed
+1 Time to Feed Forest
+1 Fungal Rebirth
+1 Trufflesnout
+1 Sabertooth Mauler
+6 Forest
+\`\`\`
+
+### predatory (3)
+\`\`\`
+1 Thragtusk
+1 Somberwald Stag
+1 Brindle Shoat
+1 Irresistible Prey
+1 Crushing Canopy
+1 Dawntreader Elk
+1 Marauder's Axe
+1 Thriving Grove
+1 Time to Feed
+1 Gingerbrute
+1 Time to Feed Forest
+1 Fungal Rebirth
+1 Trufflesnout
+1 Sabertooth Mauler
+6 Forest
+\`\`\`
+
+### predatory (4)
+\`\`\`
+1 Ravenous Baloth
+1 Momentous Fall
+1 Affectionate Indrik
+1 Irresistible Prey
+1 Brindle Shoat
+1 Crushing Canopy
+1 Dawntreader Elk
+1 Sylvan Brushstrider
+1 Thriving Grove
+1 Time to Feed
+1 Time to Feed Forest
+1 Fungal Rebirth
+1 Trufflesnout
+1 Sabertooth Mauler
+6 Forest
+\`\`\`
+
+### tree-hugging (1)
+\`\`\`
+1 Primordial Sage
+1 Nature's Way
+1 Wall of Blossoms
+1 Aggressive Urge
+1 Ambassador Oak
+1 Crushing Canopy
+1 Explore
+1 Thriving Grove
+1 Tree Hugging Forest
+1 Burlfist Oak
+1 Warden of the Woods
+1 Llanowar Visionary
+1 Snarespinner
+1 Gnarled Sage
+6 Forest
+\`\`\`
+
+### tree-hugging (2)
+\`\`\`
+1 Primordial Sage
+1 Nature's Way
+1 Wall of Blossoms
+1 Ambassador Oak
+1 Crushing Canopy
+1 Explore
+1 Thriving Grove
+1 Wildsize
+1 Tree Hugging Forest
+1 Burlfist Oak
+1 Warden of the Woods
+1 Llanowar Visionary
+1 Snarespinner
+1 Gnarled Sage
+6 Forest
+\`\`\`
+
+### tree-hugging (3)
+\`\`\`
+1 Nature's Way
+1 Wall of Blossoms
+1 Aggressive Urge
+1 Ambassador Oak
+1 Crushing Canopy
+1 Explore
+1 Thriving Grove
+1 Tree Hugging Forest
+1 Jolrael, Mwonvuli Recluse
+1 Burlfist Oak
+1 Warden of the Woods
+1 Llanowar Visionary
+1 Snarespinner
+1 Gnarled Sage
+6 Forest
+\`\`\`
+
+### tree-hugging (4)
+\`\`\`
+1 Soul of the Harvest
+1 Verdant Embrace
+1 Nature's Way
+1 Wall of Blossoms
+1 Crushing Canopy
+1 Explore
+1 Thriving Grove
+1 Wildsize
+1 Tree Hugging Forest
+1 Burlfist Oak
+1 Warden of the Woods
+1 Llanowar Visionary
+1 Snarespinner
+1 Gnarled Sage
+6 Forest
+\`\`\`
+
+### walls
+\`\`\`
+1 Wall of Blossoms
+1 Towering Titan
+1 Assault Formation
+1 Carven Caryatid
+1 Gargoyle Sentinel
+1 Overgrown Battlement
+1 Warmonger's Chariot
+1 Crushing Canopy
+1 Grave Bramble
+1 Thriving Grove
+1 Wall of Vines
+1 Roving Keep
+1 Walls Forest
+1 Portcullis Vine
+6 Forest
+\`\`\`
+
+---
+
+## multicolor
+
+### rainbow
+\`\`\`
+1 Maelstrom Archangel
+1 Chamber Sentry
+1 Dinrova Horror
+1 Fusion Elemental
+1 Mirrodin's Core
+1 Raging Regisaur
+1 Ironroot Warlord
+1 Alloy Myr
+1 Auger Spree
+1 Rainbow Terramorphic Expanse
+1 Lawmage's Binding
+1 Prophetic Prism
+1 Rupture Spire
+1 Skittering Surveyor
+1 Prismite
+1 Forest
+1 Island
+1 Mountain
+1 Plains
+1 Swamp
+\`\`\`
+`;
+
+/* ========== LOOKUP · card name → set/collector number ========== */
+/* this is the extension point for future Scryfall integration. exportCard()
+   is the single function that resolves a card name to its {set, cn} pair;
+   when we switch to live API data, replace its body. */
+
+const COLORS = ['white','blue','black','red','green','multicolor'];
+const BASIC_VANILLA = new Set(['Plains','Island','Swamp','Mountain','Forest']);
+
+/* basic land collector numbers — kept separate so themed-basic names
+   like "Angels Plains" resolve via a quick suffix-strip without table lookup. */
+const JMP_BASICS = { Plains: 38, Island: 46, Swamp: 54, Mountain: 62, Forest: 70 };
+
+/* unified card lookup: name → [set, cn, mana_cost, cmc].
+   covers JMP + M21. baked from scryfall, regenerable via the future fetcher. */
+const CARD_DATA = {
+  "A-Blood Artist": ["JMP","A-206","{1}{B}",2],
+  "Act of Treason": ["JMP","289","{2}{R}",3],
+  "Adherent of Hope": ["M21","321","{1}{W}",2],
+  "Aegis of the Heavens": ["JMP","79","{1}{W}",2],
+  "Aegis Turtle": ["JMP","138","{U}",1],
+  "Aerial Assault": ["JMP","80","{2}{W}",3],
+  "Aether Spellbomb": ["JMP","456","{1}",1],
+  "Affa Guard Hound": ["JMP","81","{2}{W}",3],
+  "Affectionate Indrik": ["JMP","373","{5}{G}",6],
+  "Aggressive Urge": ["JMP","374","{1}{G}",2],
+  "Agonizing Syphon": ["JMP","199","{3}{B}",4],
+  "Ajani's Chosen": ["JMP","82","{2}{W}{W}",4],
+  "Alabaster Mage": ["JMP","83","{1}{W}",2],
+  "Alchemist's Gift": ["M21","87","{B}",1],
+  "Allosaurus Shepherd": ["JMP","28","{G}",1],
+  "Alloy Myr": ["JMP","457","{3}",3],
+  "Alpine Houndmaster": ["M21","215","{R}{W}",2],
+  "Alpine Watchdog": ["M21","2","{1}{W}",2],
+  "Ambassador Oak": ["JMP","375","{3}{G}",4],
+  "Ancestral Statue": ["JMP","458","{4}",4],
+  "Angel of Mercy": ["JMP","84","{4}{W}",5],
+  "Angel of the Dire Hour": ["JMP","85","{5}{W}{W}",7],
+  "Angelic Arbiter": ["JMP","86","{5}{W}{W}",7],
+  "Angelic Ascension": ["M21","3","{1}{W}",2],
+  "Angelic Edict": ["JMP","87","{4}{W}",5],
+  "Angelic Page": ["JMP","88","{1}{W}",2],
+  "Animal Sanctuary": ["M21","242","",0],
+  "Anointed Chorister": ["M21","4","{W}",1],
+  "Arbor Armament": ["JMP","376","{G}",1],
+  "Arcane Encyclopedia": ["JMP","459","{3}",3],
+  "Archaeomender": ["JMP","9","{2}{U}",3],
+  "Archfiend's Vessel": ["M21","88","{B}",1],
+  "Archon of Justice": ["JMP","89","{3}{W}{W}",5],
+  "Archon of Redemption": ["JMP","90","{3}{W}{W}",5],
+  "Armorcraft Judge": ["JMP","377","{3}{G}",4],
+  "Ashmouth Hound": ["JMP","290","{1}{R}",2],
+  "Assassin's Strike": ["JMP","200","{4}{B}{B}",6],
+  "Assault Formation": ["JMP","378","{1}{G}",2],
+  "Auger Spree": ["JMP","449","{1}{B}{R}",3],
+  "Aven Gagglemaster": ["M21","5","{3}{W}{W}",5],
+  "Awakener Druid": ["JMP","379","{2}{G}",3],
+  "Azusa, Lost but Seeking": ["M21","173","{2}{G}",3],
+  "Bad Deal": ["M21","89","{4}{B}{B}",6],
+  "Bake into a Pie": ["JMP","201","{2}{B}{B}",4],
+  "Ball Lightning": ["JMP","291","{R}{R}{R}",3],
+  "Baneslayer Angel": ["M21","6","{3}{W}{W}",5],
+  "Barrage of Expendables": ["JMP","292","{R}",1],
+  "Barrin, Tolarian Archmage": ["M21","45","{1}{U}{U}",3],
+  "Barter in Blood": ["JMP","202","{2}{B}{B}",4],
+  "Basri Ket": ["M21","7","{1}{W}{W}",3],
+  "Basri, Devoted Paladin": ["M21","320","{4}{W}{W}",6],
+  "Basri's Acolyte": ["M21","8","{2}{W}{W}",4],
+  "Basri's Aegis": ["M21","322","{2}{W}{W}",4],
+  "Basri's Lieutenant": ["M21","9","{3}{W}",4],
+  "Basri's Solidarity": ["M21","10","{1}{W}",2],
+  "Bathe in Dragonfire": ["JMP","293","{2}{R}",3],
+  "Battle-Rattle Shaman": ["M21","130","{3}{R}",4],
+  "Battlefield Promotion": ["JMP","91","{1}{W}",2],
+  "Battleground Geist": ["JMP","139","{4}{U}",5],
+  "Beetleback Chief": ["JMP","294","{2}{R}{R}",4],
+  "Befuddle": ["JMP","140","{2}{U}",3],
+  "Belltower Sphinx": ["JMP","141","{4}{U}",5],
+  "Black Cat": ["JMP","203","{1}{B}",2],
+  "Black Market": ["JMP","204","{3}{B}{B}",5],
+  "Blessed Sanctuary": ["JMP","1","{3}{W}{W}",5],
+  "Blessed Spirits": ["JMP","92","{2}{W}",3],
+  "Blighted Bat": ["JMP","205","{2}{B}",3],
+  "Blindblast": ["JMP","295","{2}{R}",3],
+  "Blood Artist": ["JMP","206","{1}{B}",2],
+  "Blood Divination": ["JMP","207","{3}{B}",4],
+  "Blood Glutton": ["M21","90","{4}{B}",5],
+  "Blood Host": ["JMP","208","{3}{B}{B}",5],
+  "Bloodbond Vampire": ["JMP","209","{2}{B}{B}",4],
+  "Bloodfell Caves": ["M21","243","",0],
+  "Bloodhunter Bat": ["JMP","210","{3}{B}",4],
+  "Bloodrage Brawler": ["JMP","296","{1}{R}",2],
+  "Bloodrock Cyclops": ["JMP","297","{2}{R}",3],
+  "Bloodshot Trainee": ["JMP","298","{3}{R}",4],
+  "Blossoming Sands": ["M21","244","",0],
+  "Bogbrew Witch": ["JMP","211","{3}{B}",4],
+  "Boggart Brute": ["JMP","299","{2}{R}",3],
+  "Bolt Hound": ["M21","131","{2}{R}",3],
+  "Bone Picker": ["JMP","212","{3}{B}",4],
+  "Bone Pit Brute": ["M21","132","{4}{R}{R}",6],
+  "Bone Splinters": ["JMP","213","{B}",1],
+  "Borderland Marauder": ["JMP","300","{1}{R}",2],
+  "Borderland Minotaur": ["JMP","301","{2}{R}{R}",4],
+  "Branching Evolution": ["JMP","29","{2}{G}",3],
+  "Brash Taunter": ["M21","133","{4}{R}",5],
+  "Brightmare": ["JMP","2","{2}{W}",3],
+  "Brindle Shoat": ["JMP","380","{1}{G}",2],
+  "Brushstrider": ["JMP","381","{1}{G}",2],
+  "Bruvac the Grandiloquent": ["JMP","10","{2}{U}",3],
+  "Bubbling Cauldron": ["JMP","460","{2}",2],
+  "Bulwark Giant": ["JMP","93","{5}{W}",6],
+  "Burglar Rat": ["JMP","214","{1}{B}",2],
+  "Buried Ruin": ["JMP","491","",0],
+  "Burlfist Oak": ["M21","174","{2}{G}{G}",4],
+  "Burn Bright": ["M21","134","{2}{R}",3],
+  "Cadaver Imp": ["JMP","215","{1}{B}{B}",3],
+  "Caged Zombie": ["M21","91","{2}{B}",3],
+  "Cancel": ["M21","46","{1}{U}{U}",3],
+  "Canopy Stalker": ["M21","175","{3}{G}",4],
+  "Capture Sphere": ["M21","47","{3}{U}",4],
+  "Carrion Grub": ["M21","92","{3}{B}",4],
+  "Carven Caryatid": ["JMP","382","{1}{G}{G}",3],
+  "Cathar's Companion": ["JMP","94","{2}{W}",3],
+  "Cathars' Crusade": ["JMP","95","{3}{W}{W}",5],
+  "Cauldron Familiar": ["JMP","216","{B}",1],
+  "Celestial Enforcer": ["M21","11","{2}{W}",3],
+  "Celestial Mantle": ["JMP","96","{3}{W}{W}{W}",6],
+  "Cemetery Recruitment": ["JMP","217","{1}{B}",2],
+  "Chain Lightning": ["JMP","302","{R}",1],
+  "Chained Brute": ["JMP","19","{1}{R}",2],
+  "Chamber Sentry": ["JMP","461","{X}",0],
+  "Champion of Lambholt": ["JMP","383","{1}{G}{G}",3],
+  "Chandra, Flame's Catalyst": ["M21","332","{4}{R}{R}",6],
+  "Chandra, Heart of Fire": ["M21","135","{3}{R}{R}",5],
+  "Chandra's Firemaw": ["M21","333","{3}{R}{R}",5],
+  "Chandra's Incinerator": ["M21","136","{5}{R}",6],
+  "Chandra's Magmutt": ["M21","137","{1}{R}",2],
+  "Chandra's Pyreling": ["M21","138","{1}{R}",2],
+  "Charmbreaker Devils": ["JMP","303","{5}{R}",6],
+  "Chart a Course": ["JMP","142","{1}{U}",2],
+  "Child of Night": ["JMP","218","{1}{B}",2],
+  "Chromatic Orrery": ["M21","228","{7}",7],
+  "Chromatic Sphere": ["JMP","462","{1}",1],
+  "Chrome Replicator": ["M21","229","{5}",5],
+  "Cinder Elemental": ["JMP","304","{3}{R}",4],
+  "Cloudreader Sphinx": ["JMP","143","{4}{U}",5],
+  "Cloudshift": ["JMP","97","{W}",1],
+  "Coastal Piracy": ["JMP","144","{2}{U}{U}",4],
+  "Collateral Damage": ["JMP","305","{R}",1],
+  "Colossal Dreadmaw": ["M21","176","{4}{G}{G}",6],
+  "Commune with Dinosaurs": ["JMP","384","{G}",1],
+  "Conclave Mentor": ["M21","216","{G}{W}",2],
+  "Concordia Pegasus": ["M21","12","{1}{W}",2],
+  "Conspicuous Snoop": ["M21","139","{R}{R}",2],
+  "Containment Priest": ["M21","13","{1}{W}",2],
+  "Corpse Hauler": ["JMP","219","{1}{B}",2],
+  "Corpse Traders": ["JMP","220","{3}{B}",4],
+  "Corsair Captain": ["JMP","11","{2}{U}",3],
+  "Cradle of Vitality": ["JMP","98","{3}{W}",4],
+  "Crash Through": ["M21","140","{R}",1],
+  "Craterhoof Behemoth": ["JMP","385","{5}{G}{G}{G}",8],
+  "Crookclaw Transmuter": ["JMP","145","{3}{U}",4],
+  "Crow of Dark Tidings": ["JMP","221","{2}{B}",3],
+  "Crushing Canopy": ["JMP","386","{2}{G}",3],
+  "Crypt Lurker": ["M21","93","{3}{B}",4],
+  "Cryptic Serpent": ["JMP","146","{5}{U}{U}",7],
+  "Cultivate": ["M21","177","{2}{G}",3],
+  "Curiosity": ["JMP","147","{U}",1],
+  "Curious Obsession": ["JMP","148","{U}",1],
+  "Dance with Devils": ["JMP","306","{3}{R}",4],
+  "Dauntless Onslaught": ["JMP","99","{2}{W}",3],
+  "Dawntreader Elk": ["JMP","387","{1}{G}",2],
+  "Daybreak Charger": ["M21","14","{1}{W}",2],
+  "Death's Approach": ["JMP","222","{B}",1],
+  "Deathbloom Thallid": ["M21","94","{2}{B}",3],
+  "Defiant Strike": ["M21","15","{W}",1],
+  "Demonic Embrace": ["M21","95","{1}{B}{B}",3],
+  "Departed Deckhand": ["JMP","149","{1}{U}",2],
+  "Destructive Tampering": ["M21","141","{2}{R}",3],
+  "Dinrova Horror": ["JMP","450","{4}{U}{B}",6],
+  "Dire Fleet Warmonger": ["M21","217","{1}{B}{R}",3],
+  "Discontinuity": ["M21","48","{3}{U}{U}{U}",6],
+  "Dismal Backwater": ["M21","245","",0],
+  "Divine Arrow": ["JMP","100","{1}{W}",2],
+  "Double Vision": ["M21","142","{3}{R}{R}",5],
+  "Doublecast": ["JMP","307","{R}{R}",2],
+  "Douse in Gloom": ["JMP","223","{2}{B}",3],
+  "Draconic Roar": ["JMP","308","{1}{R}",2],
+  "Dragon Fodder": ["JMP","309","{1}{R}",2],
+  "Dragon Hatchling": ["JMP","310","{1}{R}",2],
+  "Dragonloft Idol": ["JMP","463","{4}",4],
+  "Dragonlord's Servant": ["JMP","311","{1}{R}",2],
+  "Dragonspeaker Shaman": ["JMP","312","{1}{R}{R}",3],
+  "Drainpipe Vermin": ["JMP","224","{B}",1],
+  "Drana, Liberator of Malakir": ["JMP","225","{1}{B}{B}",3],
+  "Dreamstone Hedron": ["JMP","464","{6}",6],
+  "Drover of the Mighty": ["JMP","388","{1}{G}",2],
+  "Drowsing Tyrannodon": ["M21","178","{1}{G}",2],
+  "Dualcaster Mage": ["JMP","313","{1}{R}{R}",3],
+  "Dub": ["M21","16","{2}{W}",3],
+  "Duelist's Heritage": ["JMP","101","{2}{W}",3],
+  "Duress": ["M21","96","{B}",1],
+  "Dutiful Attendant": ["JMP","226","{2}{B}",3],
+  "Dwynen's Elite": ["JMP","389","{1}{G}",2],
+  "Elder Gargaroth": ["M21","179","{3}{G}{G}",5],
+  "Elemental Uprising": ["JMP","390","{1}{G}",2],
+  "Eliminate": ["M21","97","{1}{B}",2],
+  "Elvish Archdruid": ["JMP","391","{1}{G}{G}",3],
+  "Emancipation Angel": ["JMP","102","{1}{W}{W}",3],
+  "Emiel the Blessed": ["JMP","3","{2}{W}{W}",4],
+  "Enlarge": ["JMP","392","{3}{G}{G}",5],
+  "Enthralling Hold": ["M21","49","{3}{U}{U}",5],
+  "Entomber Exarch": ["JMP","227","{2}{B}{B}",4],
+  "Epitaph Golem": ["M21","230","{5}",5],
+  "Erratic Visionary": ["JMP","150","{1}{U}",2],
+  "Essence Flux": ["JMP","151","{U}",1],
+  "Etali, Primal Storm": ["JMP","314","{4}{R}{R}",6],
+  "Eternal Taskmaster": ["JMP","228","{1}{B}",2],
+  "Eternal Thirst": ["JMP","229","{1}{B}",2],
+  "Exclude": ["JMP","152","{2}{U}",3],
+  "Exclusion Mage": ["JMP","153","{2}{U}",3],
+  "Exhume": ["JMP","230","{1}{B}",2],
+  "Experimental Overload": ["M21","218","{2}{U}{R}",4],
+  "Explore": ["JMP","393","{1}{G}",2],
+  "Exquisite Blood": ["JMP","231","{4}{B}",5],
+  "Fa'adiyah Seer": ["JMP","394","{1}{G}",2],
+  "Fabled Passage": ["M21","246","",0],
+  "Face of Divinity": ["JMP","103","{2}{W}",3],
+  "Faith's Fetters": ["M21","17","{3}{W}",4],
+  "Falconer Adept": ["M21","18","{3}{W}",4],
+  "Falkenrath Noble": ["JMP","232","{3}{B}",4],
+  "Fanatical Firebrand": ["JMP","315","{R}",1],
+  "Feat of Resistance": ["M21","19","{1}{W}",2],
+  "Feline Sovereign": ["M21","180","{2}{G}",3],
+  "Fell Specter": ["JMP","233","{3}{B}",4],
+  "Feral Hydra": ["JMP","395","{X}{G}",1],
+  "Feral Invocation": ["JMP","396","{2}{G}",3],
+  "Feral Prowler": ["JMP","397","{1}{G}",2],
+  "Fertilid": ["JMP","398","{2}{G}",3],
+  "Festering Newt": ["JMP","234","{B}",1],
+  "Fetid Imp": ["M21","98","{1}{B}",2],
+  "Fierce Empath": ["M21","181","{2}{G}",3],
+  "Fiery Emancipation": ["M21","143","{3}{R}{R}{R}",6],
+  "Finishing Blow": ["M21","99","{4}{B}",5],
+  "Flame Lash": ["JMP","316","{3}{R}",4],
+  "Flames of the Firebrand": ["JMP","317","{2}{R}",3],
+  "Flames of the Raze-Boar": ["JMP","318","{5}{R}",6],
+  "Flametongue Kavu": ["JMP","319","{3}{R}",4],
+  "Fling": ["JMP","320","{1}{R}",2],
+  "Flurry of Horns": ["JMP","321","{4}{R}",5],
+  "Forced Worship": ["JMP","104","{1}{W}",2],
+  "Forest": ["JMP","70","",0],
+  "Forge Devil": ["JMP","322","{R}",1],
+  "Forgotten Sentinel": ["M21","231","{4}",4],
+  "Fortify": ["JMP","105","{2}{W}",3],
+  "Frantic Inventory": ["M21","50","{1}{U}",2],
+  "Frost Breath": ["M21","51","{2}{U}",3],
+  "Funeral Rites": ["JMP","235","{2}{B}",3],
+  "Fungal Rebirth": ["M21","182","{2}{G}",3],
+  "Furious Rise": ["M21","144","{2}{R}",3],
+  "Furnace Whelp": ["JMP","323","{2}{R}{R}",4],
+  "Furor of the Bitten": ["M21","145","{R}",1],
+  "Fusion Elemental": ["JMP","451","{W}{U}{B}{R}{G}",5],
+  "Gadrak, the Crown-Scourge": ["M21","146","{2}{R}",3],
+  "Gale Swooper": ["M21","20","{3}{W}",4],
+  "Gargoyle Sentinel": ["JMP","465","{3}",3],
+  "Garruk, Savage Herald": ["M21","336","{4}{G}{G}",6],
+  "Garruk, Unleashed": ["M21","183","{2}{G}{G}",4],
+  "Garruk's Gorehorn": ["M21","184","{4}{G}",5],
+  "Garruk's Harbinger": ["M21","185","{1}{G}{G}",3],
+  "Garruk's Uprising": ["M21","186","{2}{G}",3],
+  "Garruk's Warsteed": ["M21","337","{3}{G}{G}",5],
+  "Ghalta, Primal Hunger": ["JMP","399","{10}{G}{G}",12],
+  "Ghirapur Guide": ["JMP","400","{2}{G}",3],
+  "Ghostly Pilferer": ["M21","52","{1}{U}",2],
+  "Ghoulcaller Gisa": ["JMP","236","{3}{B}{B}",5],
+  "Ghoulcaller's Accomplice": ["JMP","237","{1}{B}",2],
+  "Ghoulraiser": ["JMP","238","{1}{B}{B}",3],
+  "Gifted Aetherborn": ["JMP","239","{B}{B}",2],
+  "Gingerbrute": ["JMP","466","{1}",1],
+  "Gird for Battle": ["JMP","106","{W}",1],
+  "Gloom Sower": ["M21","100","{5}{B}{B}",7],
+  "Glorious Anthem": ["M21","21","{1}{W}{W}",3],
+  "Gnarled Sage": ["M21","187","{3}{G}{G}",5],
+  "Goblin Arsonist": ["M21","147","{R}",1],
+  "Goblin Chieftain": ["JMP","324","{1}{R}{R}",3],
+  "Goblin Commando": ["JMP","325","{4}{R}",5],
+  "Goblin Goon": ["JMP","326","{3}{R}",4],
+  "Goblin Instigator": ["JMP","327","{1}{R}",2],
+  "Goblin Lore": ["JMP","328","{1}{R}",2],
+  "Goblin Rally": ["JMP","329","{3}{R}{R}",5],
+  "Goblin Shortcutter": ["JMP","330","{1}{R}",2],
+  "Goblin Wizardry": ["M21","148","{3}{R}",4],
+  "Gonti, Lord of Luxury": ["JMP","240","{2}{B}{B}",4],
+  "Goremand": ["M21","101","{4}{B}{B}",6],
+  "Grasp of Darkness": ["M21","102","{B}{B}",2],
+  "Grave Bramble": ["JMP","401","{1}{G}{G}",3],
+  "Gravewaker": ["JMP","241","{4}{B}{B}",6],
+  "Griffin Aerie": ["M21","22","{1}{W}",2],
+  "Grim Lavamancer": ["JMP","331","{R}",1],
+  "Grim Tutor": ["M21","103","{1}{B}{B}",3],
+  "Gristle Grinner": ["JMP","242","{4}{B}",5],
+  "Guardian Idol": ["JMP","467","{2}",2],
+  "Hamletback Goliath": ["JMP","332","{6}{R}",7],
+  "Harvester of Souls": ["JMP","243","{4}{B}{B}",6],
+  "Havoc Jester": ["M21","149","{4}{R}",5],
+  "Healer's Hawk": ["JMP","107","{W}",1],
+  "Heartfire": ["JMP","333","{1}{R}",2],
+  "Heartfire Immolator": ["M21","150","{1}{R}",2],
+  "Hedron Archive": ["JMP","468","{4}",4],
+  "Hellkite Punisher": ["M21","151","{5}{R}{R}",7],
+  "Hellrider": ["JMP","334","{2}{R}{R}",4],
+  "Herald's Horn": ["JMP","469","{3}",3],
+  "Heroic Intervention": ["M21","188","{1}{G}",2],
+  "High Sentinels of Arashin": ["JMP","108","{3}{W}",4],
+  "Historian of Zhalfir": ["M21","325","{2}{U}{U}",4],
+  "Hobblefiend": ["M21","152","{1}{R}",2],
+  "Homing Lightning": ["JMP","335","{2}{R}{R}",4],
+  "Hooded Blightfang": ["M21","104","{2}{B}",3],
+  "Hungry Flames": ["JMP","336","{2}{R}",3],
+  "Hunter's Edge": ["M21","189","{3}{G}",4],
+  "Hunter's Insight": ["JMP","402","{2}{G}",3],
+  "Idol of Endurance": ["M21","23","{2}{W}",3],
+  "Igneous Cur": ["M21","153","{1}{R}",2],
+  "Immolating Gyre": ["JMP","20","{4}{R}{R}",6],
+  "Indomitable Will": ["JMP","109","{1}{W}",2],
+  "Indulging Patrician": ["M21","219","{1}{W}{B}",3],
+  "Infernal Scarring": ["M21","105","{1}{B}",2],
+  "Inferno Hellion": ["JMP","337","{3}{R}",4],
+  "Initiate's Companion": ["JMP","403","{1}{G}",2],
+  "Inniaz, the Gale Force": ["JMP","12","{3}{U}{U}",5],
+  "Innocent Blood": ["JMP","244","{B}",1],
+  "Inspired Charge": ["JMP","110","{2}{W}{W}",4],
+  "Inspiring Call": ["JMP","404","{2}{G}",3],
+  "Inspiring Captain": ["JMP","111","{3}{W}",4],
+  "Inspiring Unicorn": ["JMP","112","{2}{W}{W}",4],
+  "Invigorating Surge": ["M21","190","{2}{G}",3],
+  "Ironroot Warlord": ["JMP","452","{1}{G}{W}",3],
+  "Ironshell Beetle": ["JMP","405","{1}{G}",2],
+  "Irresistible Prey": ["JMP","406","{G}",1],
+  "Isamaru, Hound of Konda": ["JMP","113","{W}",1],
+  "Island": ["JMP","46","",0],
+  "Jeskai Elder": ["M21","53","{1}{U}",2],
+  "Jolrael, Mwonvuli Recluse": ["M21","191","{1}{G}",2],
+  "Jousting Dummy": ["JMP","470","{2}",2],
+  "Juggernaut": ["JMP","471","{4}",4],
+  "Jungle Hollow": ["M21","247","",0],
+  "Kaervek, the Spiteful": ["M21","106","{2}{B}{B}",4],
+  "Kalastria Nightwatch": ["JMP","245","{4}{B}",5],
+  "Keen Glidemaster": ["M21","54","{1}{U}",2],
+  "Keeper of Fables": ["JMP","407","{3}{G}{G}",5],
+  "Kels, Fight Fixer": ["JMP","15","{2}{B}{B}",4],
+  "Keral Keep Disciples": ["M21","334","{2}{R}{R}",4],
+  "Kiln Fiend": ["JMP","338","{1}{R}",2],
+  "Kinetic Augur": ["M21","154","{3}{R}",4],
+  "Kira, Great Glass-Spinner": ["JMP","154","{1}{U}{U}",3],
+  "Kitesail Corsair": ["JMP","155","{1}{U}",2],
+  "Kitesail Freebooter": ["M21","107","{1}{B}",2],
+  "Knight of the Tusk": ["JMP","114","{4}{W}{W}",6],
+  "Knightly Valor": ["JMP","115","{4}{W}",5],
+  "Kor Spiritdancer": ["JMP","116","{1}{W}",2],
+  "Krenko, Mob Boss": ["JMP","339","{2}{R}{R}",4],
+  "Languish": ["JMP","246","{2}{B}{B}",4],
+  "Last Gasp": ["JMP","247","{1}{B}",2],
+  "Lathliss, Dragon Queen": ["JMP","340","{4}{R}{R}",6],
+  "Launch Party": ["JMP","248","{3}{B}",4],
+  "Lawless Broker": ["JMP","249","{2}{B}",3],
+  "Lawmage's Binding": ["JMP","453","{1}{W}{U}",3],
+  "Leaf Gilder": ["JMP","408","{1}{G}",2],
+  "Leafkin Avenger": ["M21","220","{2}{R}{G}",4],
+  "Leave in the Dust": ["JMP","156","{3}{U}",4],
+  "Legion's Judgment": ["M21","24","{2}{W}",3],
+  "Lena, Selfless Champion": ["JMP","117","{4}{W}{W}",6],
+  "Library Larcenist": ["M21","55","{2}{U}",3],
+  "Life Goes On": ["M21","192","{G}",1],
+  "Lifecrafter's Gift": ["JMP","409","{3}{G}",4],
+  "Light of Promise": ["M21","25","{2}{W}",3],
+  "Lightning Axe": ["JMP","341","{R}",1],
+  "Lightning Bolt": ["JMP","342","{R}",1],
+  "Lightning Diadem": ["JMP","343","{5}{R}",6],
+  "Lightning Elemental": ["JMP","344","{3}{R}",4],
+  "Lightning Phoenix": ["JMP","21","{2}{R}",3],
+  "Lightning Shrieker": ["JMP","345","{4}{R}",5],
+  "Lightning Visionary": ["JMP","22","{1}{R}",2],
+  "Lightning-Core Excavator": ["JMP","32","{1}",1],
+  "Lightwalker": ["JMP","118","{1}{W}",2],
+  "Liliana, Death Mage": ["M21","328","{4}{B}{B}",6],
+  "Liliana, Waker of the Dead": ["M21","108","{2}{B}{B}",4],
+  "Liliana's Devotee": ["M21","109","{2}{B}",3],
+  "Liliana's Elite": ["JMP","250","{2}{B}",3],
+  "Liliana's Reaver": ["JMP","251","{2}{B}{B}",4],
+  "Liliana's Scorn": ["M21","329","{3}{B}{B}",5],
+  "Liliana's Scrounger": ["M21","330","{2}{B}",3],
+  "Liliana's Standard Bearer": ["M21","110","{2}{B}",3],
+  "Liliana's Steward": ["M21","111","{B}",1],
+  "Linvala, Keeper of Silence": ["JMP","119","{2}{W}{W}",4],
+  "Living Lightning": ["JMP","23","{3}{R}",4],
+  "Llanowar Visionary": ["M21","193","{2}{G}",3],
+  "Lofty Denial": ["M21","56","{1}{U}",2],
+  "Long Road Home": ["JMP","120","{1}{W}",2],
+  "Lorescale Coatl": ["M21","221","{1}{G}{U}",3],
+  "Lurking Predators": ["JMP","410","{4}{G}{G}",6],
+  "Macabre Waltz": ["JMP","252","{1}{B}",2],
+  "Maelstrom Archangel": ["JMP","454","{W}{U}{B}{R}{G}",5],
+  "Magma Jet": ["JMP","346","{1}{R}",2],
+  "Magmaquake": ["JMP","347","{X}{R}{R}",2],
+  "Makeshift Battalion": ["M21","26","{2}{W}",3],
+  "Makeshift Munitions": ["JMP","348","{1}{R}",2],
+  "Malakir Familiar": ["JMP","253","{2}{B}",3],
+  "Malefic Scythe": ["M21","112","{1}{B}",2],
+  "Mana Geode": ["JMP","472","{3}",3],
+  "Mangara, the Diplomat": ["M21","27","{3}{W}",4],
+  "Marauder's Axe": ["JMP","473","{2}",2],
+  "Mark of the Vampire": ["JMP","254","{3}{B}",4],
+  "Masked Blackguard": ["M21","113","{1}{B}",2],
+  "Massacre Wurm": ["M21","114","{3}{B}{B}{B}",6],
+  "Mausoleum Turnkey": ["JMP","255","{3}{B}",4],
+  "Mazemind Tome": ["M21","232","{2}",2],
+  "Mentor of the Meek": ["JMP","121","{2}{W}",3],
+  "Mesa Unicorn": ["JMP","122","{1}{W}",2],
+  "Meteor Golem": ["JMP","474","{7}",7],
+  "Meteorite": ["M21","233","{5}",5],
+  "Miasmic Mummy": ["JMP","256","{1}{B}",2],
+  "Mikaeus, the Lunarch": ["JMP","123","{X}{W}",1],
+  "Mind Rot": ["M21","115","{2}{B}",3],
+  "Minotaur Skullcleaver": ["JMP","349","{2}{R}",3],
+  "Minotaur Sureshot": ["JMP","350","{2}{R}",3],
+  "Mire Triton": ["JMP","257","{1}{B}",2],
+  "Mirrodin's Core": ["JMP","492","",0],
+  "Miscast": ["M21","57","{U}",1],
+  "Mistral Singer": ["M21","58","{2}{U}",3],
+  "Molten Ravager": ["JMP","351","{2}{R}",3],
+  "Moment of Heroism": ["JMP","124","{1}{W}",2],
+  "Momentous Fall": ["JMP","411","{2}{G}{G}",4],
+  "Mountain": ["JMP","62","",0],
+  "Mugging": ["JMP","352","{R}",1],
+  "Murmuring Phantasm": ["JMP","157","{1}{U}",2],
+  "Muxus, Goblin Grandee": ["JMP","24","{4}{R}{R}",6],
+  "Myr Sire": ["JMP","475","{2}",2],
+  "Mystic Archaeologist": ["JMP","158","{1}{U}",2],
+  "Mystic Skyfish": ["M21","326","{2}{U}",3],
+  "Narcolepsy": ["JMP","159","{1}{U}",2],
+  "Nature's Way": ["JMP","412","{1}{G}",2],
+  "Nebelgast Herald": ["JMP","160","{2}{U}",3],
+  "Necromentia": ["M21","116","{1}{B}{B}",3],
+  "Nessian Hornbeetle": ["JMP","413","{1}{G}",2],
+  "New Horizons": ["JMP","414","{2}{G}",3],
+  "Neyith of the Dire Hunt": ["JMP","30","{2}{G}{G}",4],
+  "Niambi, Esteemed Speaker": ["M21","222","{W}{U}",2],
+  "Nightshade Stinger": ["JMP","258","{B}",1],
+  "Nine Lives": ["M21","28","{1}{W}{W}",3],
+  "Nocturnal Feeder": ["JMP","16","{2}{B}",3],
+  "Nyxathid": ["JMP","259","{1}{B}{B}",3],
+  "Obsessive Stitcher": ["M21","223","{1}{U}{B}",3],
+  "Octoprophet": ["JMP","161","{3}{U}",4],
+  "Ogre Slumlord": ["JMP","260","{3}{B}{B}",5],
+  "Onakke Ogre": ["M21","155","{2}{R}",3],
+  "Oneirophage": ["JMP","162","{3}{U}",4],
+  "Oona's Blackguard": ["JMP","261","{1}{B}",2],
+  "Opt": ["M21","59","{U}",1],
+  "Oracle of Mul Daya": ["JMP","415","{3}{G}",4],
+  "Orazca Frillback": ["JMP","416","{2}{G}",3],
+  "Ormos, Archive Keeper": ["JMP","13","{4}{U}{U}",6],
+  "Ornery Dilophosaur": ["M21","194","{3}{G}",4],
+  "Ornery Goblin": ["JMP","353","{1}{R}",2],
+  "Outnumber": ["JMP","354","{R}",1],
+  "Overgrown Battlement": ["JMP","417","{1}{G}",2],
+  "Pacifism": ["JMP","125","{1}{W}",2],
+  "Pack Leader": ["M21","29","{1}{W}",2],
+  "Palladium Myr": ["M21","234","{3}",3],
+  "Parasitic Implant": ["JMP","262","{3}{B}",4],
+  "Path of Bravery": ["JMP","126","{2}{W}",3],
+  "Path to Exile": ["JMP","127","{W}",1],
+  "Patron of the Valiant": ["JMP","128","{3}{W}{W}",5],
+  "Peel from Reality": ["JMP","163","{1}{U}",2],
+  "Peer into the Abyss": ["M21","117","{4}{B}{B}{B}",7],
+  "Penumbra Bobcat": ["JMP","418","{2}{G}",3],
+  "Perilous Myr": ["JMP","476","{2}",2],
+  "Pestilent Haze": ["M21","118","{1}{B}{B}",3],
+  "Phyrexian Broodlings": ["JMP","263","{1}{B}{B}",3],
+  "Phyrexian Debaser": ["JMP","264","{3}{B}",4],
+  "Phyrexian Gargantua": ["JMP","265","{4}{B}{B}",6],
+  "Phyrexian Rager": ["JMP","266","{2}{B}",3],
+  "Phyrexian Reclamation": ["JMP","267","{B}",1],
+  "Phyrexian Tower": ["JMP","493","",0],
+  "Pillar of Flame": ["JMP","355","{R}",1],
+  "Pirate's Cutlass": ["JMP","477","{3}",3],
+  "Pitchburn Devils": ["M21","156","{4}{R}",5],
+  "Plagued Rusalka": ["JMP","268","{B}",1],
+  "Plains": ["JMP","38","",0],
+  "Portcullis Vine": ["M21","195","{G}",1],
+  "Pouncing Cheetah": ["JMP","419","{2}{G}",3],
+  "Predatory Wurm": ["M21","338","{3}{G}",4],
+  "Prescient Chimera": ["JMP","164","{3}{U}{U}",5],
+  "Presence of Gond": ["JMP","420","{2}{G}",3],
+  "Pridemalkin": ["M21","196","{2}{G}",3],
+  "Primal Might": ["M21","197","{X}{G}",1],
+  "Primeval Bounty": ["JMP","421","{5}{G}",6],
+  "Primordial Sage": ["JMP","422","{4}{G}{G}",6],
+  "Prismite": ["M21","235","{2}",2],
+  "Prophetic Prism": ["JMP","478","{2}",2],
+  "Prosperous Pirates": ["JMP","165","{4}{U}",5],
+  "Pursued Whale": ["M21","60","{5}{U}{U}",7],
+  "Pyroclastic Elemental": ["JMP","356","{3}{R}{R}",5],
+  "Quirion Dryad": ["M21","198","{1}{G}",2],
+  "Radha, Heart of Keld": ["M21","224","{1}{R}{G}",3],
+  "Radiant Fountain": ["M21","248","",0],
+  "Rageblood Shaman": ["JMP","357","{1}{R}{R}",3],
+  "Raging Regisaur": ["JMP","455","{2}{R}{G}",4],
+  "Rain of Revelation": ["M21","61","{3}{U}",4],
+  "Raise the Alarm": ["JMP","129","{1}{W}",2],
+  "Rambunctious Mutt": ["M21","30","{3}{W}{W}",5],
+  "Rampaging Brontodon": ["JMP","423","{5}{G}{G}",7],
+  "Ranger's Guile": ["M21","199","{G}",1],
+  "Rapacious Dragon": ["JMP","358","{4}{R}",5],
+  "Rattlechains": ["JMP","166","{1}{U}",2],
+  "Ravenous Baloth": ["JMP","424","{2}{G}{G}",4],
+  "Ravenous Chupacabra": ["JMP","269","{2}{B}{B}",4],
+  "Read the Runes": ["JMP","167","{X}{U}",1],
+  "Read the Tides": ["M21","62","{5}{U}",6],
+  "Reanimate": ["JMP","270","{B}",1],
+  "Reckless Scholar": ["JMP","168","{2}{U}",3],
+  "Release the Dogs": ["JMP","4","{3}{W}",4],
+  "Return to Nature": ["M21","200","{1}{G}",2],
+  "Revitalize": ["M21","31","{1}{W}",2],
+  "Rewind": ["M21","63","{2}{U}{U}",4],
+  "Rhox Faithmender": ["JMP","130","{3}{W}",4],
+  "Rhystic Study": ["JMP","169","{2}{U}",3],
+  "Riddle of Lightning": ["JMP","359","{3}{R}{R}",5],
+  "Riddleform": ["M21","64","{1}{U}",2],
+  "Rin and Seri, Inseparable": ["M21","278","{1}{R}{G}{W}",4],
+  "Riptide Laboratory": ["JMP","494","",0],
+  "Rise Again": ["M21","119","{4}{B}",5],
+  "Rise of the Dark Realms": ["JMP","271","{7}{B}{B}",9],
+  "Rishadan Airship": ["JMP","170","{2}{U}",3],
+  "Rishkar, Peema Renegade": ["JMP","425","{2}{G}",3],
+  "Roaming Ghostlight": ["M21","65","{3}{U}{U}",5],
+  "Rogue's Gloves": ["JMP","479","{2}",2],
+  "Ronom Unicorn": ["JMP","131","{1}{W}",2],
+  "Rookie Mistake": ["M21","66","{U}",1],
+  "Rousing Read": ["M21","67","{2}{U}",3],
+  "Roving Keep": ["JMP","480","{7}",7],
+  "Rugged Highlands": ["M21","249","",0],
+  "Rumbling Baloth": ["JMP","426","{2}{G}{G}",4],
+  "Run Afoul": ["M21","201","{G}",1],
+  "Runed Halo": ["M21","32","{W}{W}",2],
+  "Runed Servitor": ["JMP","481","{2}",2],
+  "Rupture Spire": ["JMP","495","",0],
+  "Sabertooth Mauler": ["M21","202","{3}{G}",4],
+  "Sage's Row Savant": ["JMP","171","{1}{U}",2],
+  "Sailor of Means": ["JMP","172","{2}{U}",3],
+  "Sanctum of All": ["M21","225","{W}{U}{B}{R}{G}",5],
+  "Sanctum of Calm Waters": ["M21","68","{3}{U}",4],
+  "Sanctum of Fruitful Harvest": ["M21","203","{2}{G}",3],
+  "Sanctum of Shattered Heights": ["M21","157","{2}{R}",3],
+  "Sanctum of Stone Fangs": ["M21","120","{1}{B}",2],
+  "Sanctum of Tranquil Light": ["M21","33","{W}",1],
+  "Sangromancer": ["JMP","272","{2}{B}{B}",4],
+  "Sanguine Indulgence": ["M21","121","{3}{B}",4],
+  "Sanitarium Skeleton": ["JMP","273","{B}",1],
+  "Sarkhan's Rage": ["JMP","360","{4}{R}",5],
+  "Sarkhan's Unsealing": ["JMP","361","{3}{R}",4],
+  "Savage Stomp": ["JMP","427","{2}{G}",3],
+  "Scarecrone": ["JMP","482","{3}",3],
+  "Scavenging Ooze": ["M21","204","{1}{G}",2],
+  "Scholar of the Lost Trove": ["JMP","14","{5}{U}{U}",7],
+  "Scorching Dragonfire": ["M21","158","{1}{R}",2],
+  "Scoured Barrens": ["M21","250","",0],
+  "Scourge of Nel Toth": ["JMP","274","{5}{B}{B}",7],
+  "Scroll of Avacyn": ["JMP","483","{1}",1],
+  "Scrounging Bandar": ["JMP","428","{1}{G}",2],
+  "Scuttlemutt": ["JMP","484","{3}",3],
+  "Sea Gate Oracle": ["JMP","173","{2}{U}",3],
+  "Seasoned Hallowblade": ["M21","34","{1}{W}",2],
+  "Secure the Scene": ["M21","35","{4}{W}",5],
+  "See the Truth": ["M21","69","{1}{U}",2],
+  "Seismic Elemental": ["JMP","362","{3}{R}{R}",5],
+  "Selfless Savior": ["M21","36","{W}",1],
+  "Selhoff Occultist": ["JMP","174","{2}{U}",3],
+  "Selvala, Heart of the Wilds": ["JMP","429","{1}{G}{G}",3],
+  "Sengir Vampire": ["JMP","275","{3}{B}{B}",5],
+  "Serendib Efreet": ["JMP","175","{2}{U}",3],
+  "Serra Angel": ["JMP","132","{3}{W}{W}",5],
+  "Setessan Training": ["M21","205","{1}{G}",2],
+  "Sethron, Hurloon General": ["JMP","25","{3}{R}{R}",5],
+  "Settle the Score": ["JMP","276","{2}{B}{B}",4],
+  "Shacklegeist": ["M21","70","{1}{U}",2],
+  "Shambling Goblin": ["JMP","277","{B}",1],
+  "Sharding Sphinx": ["JMP","176","{4}{U}{U}",6],
+  "Sheoldred, Whispering One": ["JMP","278","{5}{B}{B}",7],
+  "Shipwreck Dowser": ["M21","71","{3}{U}{U}",5],
+  "Shock": ["M21","159","{R}",1],
+  "Short Sword": ["M21","236","{1}",1],
+  "Siege Striker": ["M21","37","{2}{W}",3],
+  "Sigiled Contender": ["M21","323","{3}{W}",4],
+  "Sigiled Starfish": ["JMP","177","{1}{U}",2],
+  "Signpost Scarecrow": ["JMP","485","{4}",4],
+  "Silent Dart": ["M21","237","{1}",1],
+  "Silhana Wayfinder": ["JMP","430","{1}{G}",2],
+  "Silversmote Ghoul": ["M21","122","{2}{B}",3],
+  "Sin Prodder": ["JMP","363","{2}{R}",3],
+  "Skeleton Archer": ["M21","123","{3}{B}",4],
+  "Skittering Surveyor": ["JMP","486","{3}",3],
+  "Sky Tether": ["JMP","133","{W}",1],
+  "Skyscanner": ["M21","238","{3}",3],
+  "Skyway Sniper": ["M21","206","{G}",1],
+  "Slate Street Ruffian": ["JMP","279","{2}{B}",3],
+  "Snarespinner": ["M21","207","{1}{G}",2],
+  "Solemn Simulacrum": ["M21","239","{4}",4],
+  "Somberwald Stag": ["JMP","431","{3}{G}{G}",5],
+  "Soul of the Harvest": ["JMP","432","{4}{G}{G}",6],
+  "Soul Salvage": ["JMP","280","{2}{B}",3],
+  "Soul Sear": ["M21","160","{2}{R}",3],
+  "Sparkhunter Masticore": ["M21","240","{3}",3],
+  "Speaker of the Heavens": ["M21","38","{W}",1],
+  "Spectral Sailor": ["JMP","178","{U}",1],
+  "Spellgorger Weird": ["M21","161","{2}{R}",3],
+  "Spined Megalodon": ["M21","72","{5}{U}{U}",7],
+  "Spirit of Malevolence": ["M21","331","{1}{B}",2],
+  "Spiteful Prankster": ["JMP","26","{2}{R}",3],
+  "Spitting Earth": ["JMP","364","{1}{R}",2],
+  "Sporemound": ["JMP","433","{3}{G}{G}",5],
+  "Sporeweb Weaver": ["M21","208","{2}{G}",3],
+  "Stab Wound": ["JMP","281","{2}{B}",3],
+  "Staunch Shieldmate": ["M21","39","{W}",1],
+  "Steel-Plume Marshal": ["JMP","5","{3}{W}{W}",5],
+  "Stone Haven Pilgrim": ["JMP","6","{1}{W}",2],
+  "Storm Caller": ["M21","335","{2}{R}",3],
+  "Storm Sculptor": ["JMP","179","{3}{U}",4],
+  "Stormwing Entity": ["M21","73","{3}{U}{U}",5],
+  "Subira, Tulzidi Caravanner": ["M21","162","{2}{R}",3],
+  "Sublime Epiphany": ["M21","74","{4}{U}{U}",6],
+  "Supply Runners": ["JMP","7","{4}{W}",5],
+  "Sure Strike": ["M21","163","{1}{R}",2],
+  "Suspicious Bookcase": ["JMP","487","{2}",2],
+  "Swamp": ["JMP","54","",0],
+  "Swarm of Bloodflies": ["JMP","282","{4}{B}",5],
+  "Sweep Away": ["JMP","180","{2}{U}",3],
+  "Swift Response": ["M21","40","{1}{W}",2],
+  "Swiftwater Cliffs": ["M21","251","",0],
+  "Sylvan Brushstrider": ["JMP","434","{2}{G}",3],
+  "Sylvan Ranger": ["JMP","435","{1}{G}",2],
+  "Take Heart": ["JMP","134","{W}",1],
+  "Talrand, Sky Summoner": ["JMP","181","{2}{U}{U}",4],
+  "Talrand's Invocation": ["JMP","182","{2}{U}{U}",4],
+  "Tandem Tactics": ["JMP","135","{1}{W}",2],
+  "Tavern Swindler": ["M21","124","{1}{B}",2],
+  "Teferi, Master of Time": ["M21","75","{2}{U}{U}",4],
+  "Teferi, Timeless Voyager": ["M21","324","{4}{U}{U}",6],
+  "Teferi's Ageless Insight": ["M21","76","{2}{U}{U}",4],
+  "Teferi's Protege": ["M21","77","{2}{U}",3],
+  "Teferi's Tutelage": ["M21","78","{2}{U}",3],
+  "Teferi's Wavecaster": ["M21","327","{3}{U}{U}",5],
+  "Tempered Veteran": ["M21","41","{1}{W}",2],
+  "Temple of Epiphany": ["M21","252","",0],
+  "Temple of Malady": ["M21","253","",0],
+  "Temple of Mystery": ["M21","254","",0],
+  "Temple of Silence": ["M21","255","",0],
+  "Temple of Triumph": ["M21","256","",0],
+  "Tempting Witch": ["JMP","283","{2}{B}",3],
+  "Terramorphic Expanse": ["JMP","78","",0],
+  "Terrarion": ["JMP","488","{1}",1],
+  "Terror of the Peaks": ["M21","164","{3}{R}{R}",5],
+  "Thermo-Alchemist": ["JMP","365","{1}{R}",2],
+  "Thieves' Guild Enforcer": ["M21","125","{B}",1],
+  "Thirst for Knowledge": ["JMP","183","{2}{U}",3],
+  "Thornwood Falls": ["M21","257","",0],
+  "Thought Collapse": ["JMP","184","{1}{U}{U}",3],
+  "Thought Scour": ["JMP","185","{U}",1],
+  "Thragtusk": ["JMP","436","{4}{G}",5],
+  "Thrashing Brontodon": ["M21","209","{1}{G}{G}",3],
+  "Thrill of Possibility": ["M21","165","{1}{R}",2],
+  "Thriving Bluff": ["JMP","33","",0],
+  "Thriving Grove": ["JMP","34","",0],
+  "Thriving Heath": ["JMP","35","",0],
+  "Thriving Isle": ["JMP","36","",0],
+  "Thriving Moor": ["JMP","37","",0],
+  "Thundering Spineback": ["JMP","437","{5}{G}{G}",7],
+  "Tibalt's Rager": ["JMP","366","{1}{R}",2],
+  "Tide Skimmer": ["M21","79","{3}{U}",4],
+  "Time to Feed": ["JMP","438","{2}{G}",3],
+  "Tinybones, Trinket Thief": ["JMP","17","{1}{B}",2],
+  "Titanic Growth": ["M21","210","{1}{G}",2],
+  "Tithebearer Giant": ["JMP","284","{5}{B}",6],
+  "Tolarian Kraken": ["M21","80","{4}{U}{U}",6],
+  "Tome Anima": ["M21","81","{3}{U}",4],
+  "Torch Fiend": ["JMP","367","{1}{R}",2],
+  "Tormod's Crypt": ["M21","241","{0}",0],
+  "Towering Titan": ["JMP","31","{4}{G}{G}",6],
+  "Towering-Wave Mystic": ["JMP","186","{1}{U}",2],
+  "Track Down": ["M21","211","{1}{G}",2],
+  "Traitorous Greed": ["M21","166","{3}{R}",4],
+  "Tranquil Cove": ["M21","258","",0],
+  "Transmogrify": ["M21","167","{3}{R}",4],
+  "Trufflesnout": ["M21","212","{2}{G}",3],
+  "Trusty Retriever": ["JMP","8","{3}{W}",4],
+  "Turn to Slag": ["M21","168","{3}{R}{R}",5],
+  "Turret Ogre": ["M21","169","{3}{R}",4],
+  "Twinblade Assassins": ["M21","226","{3}{B}{G}",5],
+  "Ugin, the Spirit Dragon": ["M21","1","{8}",8],
+  "Ulvenwald Hydra": ["JMP","439","{4}{G}{G}",6],
+  "Unleash Fury": ["M21","170","{1}{R}",2],
+  "Unstable Obelisk": ["JMP","489","{3}",3],
+  "Unsubstantiate": ["M21","82","{1}{U}",2],
+  "Valorous Stance": ["JMP","136","{1}{W}",2],
+  "Valorous Steed": ["M21","42","{4}{W}",5],
+  "Vampire Neonate": ["JMP","285","{B}",1],
+  "Vastwood Zendikon": ["JMP","440","{4}{G}",5],
+  "Vedalken Archmage": ["JMP","187","{2}{U}{U}",4],
+  "Vedalken Entrancer": ["JMP","188","{3}{U}",4],
+  "Verdant Embrace": ["JMP","441","{3}{G}{G}",5],
+  "Village Rites": ["M21","126","{B}",1],
+  "Vito, Thorn of the Dusk Rose": ["M21","127","{2}{B}",3],
+  "Vodalian Arcanist": ["M21","83","{1}{U}",2],
+  "Voice of the Provinces": ["JMP","137","{4}{W}{W}",6],
+  "Volcanic Fallout": ["JMP","368","{1}{R}{R}",3],
+  "Volcanic Geyser": ["M21","171","{X}{R}{R}",2],
+  "Volcanic Salvo": ["M21","172","{10}{R}{R}",12],
+  "Volley Veteran": ["JMP","369","{3}{R}",4],
+  "Voyage's End": ["JMP","189","{1}{U}",2],
+  "Vryn Wingmare": ["M21","43","{2}{W}",3],
+  "Wailing Ghoul": ["JMP","286","{1}{B}",2],
+  "Waker of Waves": ["M21","84","{5}{U}{U}",7],
+  "Walking Corpse": ["M21","128","{1}{B}",2],
+  "Wall of Blossoms": ["JMP","442","{1}{G}",2],
+  "Wall of Lost Thoughts": ["JMP","190","{1}{U}",2],
+  "Wall of Runes": ["M21","85","{U}",1],
+  "Wall of Vines": ["JMP","443","{G}",1],
+  "Warded Battlements": ["M21","44","{2}{W}",3],
+  "Warden of Evos Isle": ["JMP","191","{2}{U}",3],
+  "Warden of the Woods": ["M21","213","{4}{G}{G}",6],
+  "Warfire Javelineer": ["JMP","370","{3}{R}",4],
+  "Warmonger's Chariot": ["JMP","490","{2}",2],
+  "Watcher of the Spheres": ["M21","227","{W}{U}",2],
+  "Waterknot": ["JMP","192","{1}{U}{U}",3],
+  "Weaver of Lightning": ["JMP","371","{2}{R}",3],
+  "Whelming Wave": ["JMP","193","{2}{U}{U}",4],
+  "Wight of Precinct Six": ["JMP","287","{1}{B}",2],
+  "Wildheart Invoker": ["JMP","444","{2}{G}{G}",4],
+  "Wildsize": ["JMP","445","{2}{G}",3],
+  "Wildwood Patrol": ["M21","339","{2}{G}",3],
+  "Wildwood Scourge": ["M21","214","{X}{G}",1],
+  "Wind-Scarred Crag": ["M21","259","",0],
+  "Windreader Sphinx": ["JMP","194","{5}{U}{U}",7],
+  "Windstorm Drake": ["JMP","195","{4}{U}",5],
+  "Winged Words": ["JMP","196","{2}{U}",3],
+  "Wishcoin Crab": ["M21","86","{3}{U}",4],
+  "Wishful Merfolk": ["JMP","197","{1}{U}",2],
+  "Witch of the Moors": ["JMP","18","{3}{B}{B}",5],
+  "Witch's Cauldron": ["M21","129","{B}",1],
+  "Wizard's Retort": ["JMP","198","{1}{U}{U}",3],
+  "Woodborn Behemoth": ["JMP","446","{3}{G}{G}",5],
+  "Wren's Run Vanquisher": ["JMP","447","{1}{G}",2],
+  "Young Pyromancer": ["JMP","372","{1}{R}",2],
+  "Zendikar's Roil": ["JMP","448","{3}{G}{G}",5],
+  "Zombie Infestation": ["JMP","288","{1}{B}",2],
+  "Zurzoth, Chaos Rider": ["JMP","27","{2}{R}",3],
+};
+
+/* resolve a card name to its export form: {name, set, cn, mc, cmc}.
+   the future Scryfall-backed version replaces this function only. */
+function exportCard(name){
+  if(JMP_BASICS[name] !== undefined) return { name, set:'JMP', cn:String(JMP_BASICS[name]), mc:'', cmc:0 };
+  // themed basic: "Angels Plains" → resolve to vanilla "Plains"
+  for(const b of Object.keys(JMP_BASICS)){
+    if(name.endsWith(' '+b)) return { name:b, set:'JMP', cn:String(JMP_BASICS[b]), mc:'', cmc:0 };
+  }
+  if(name === 'Rainbow Terramorphic Expanse'){
+    const d = CARD_DATA['Terramorphic Expanse'];
+    return { name:'Terramorphic Expanse', set:'JMP', cn:d?d[1]:null, mc:'', cmc:0 };
+  }
+  const d = CARD_DATA[name];
+  if(d) return { name, set:d[0], cn:d[1], mc:d[2], cmc:d[3] };
+  return { name, set:null, cn:null, mc:'', cmc:0 };
+}
+
+/* ========== PARSER · markdown → PACKS[] ========== */
+function parseMarkdown(md){
+  const packs = [];
+  const lines = md.split('\n');
+  let currentColor = null;
+  let currentPack = null;
+  let inCode = false;
+  for(const raw of lines){
+    const line = raw.replace(/\r$/,'');
+    if(line.startsWith('## ') && !line.startsWith('### ')){
+      const head = line.slice(3).toLowerCase();
+      for(const c of COLORS){ if(head.startsWith(c)){ currentColor = c; break; } }
+      continue;
+    }
+    if(line.startsWith('### ')){
+      const name = line.slice(4).trim();
+      const m = name.match(/^(.+?)\s*\((\d+)\)\s*$/);
+      const theme = m ? m[1].trim() : name;
+      currentPack = { name, theme, color: currentColor, cards: [] };
+      packs.push(currentPack);
+      continue;
+    }
+    if(line.startsWith('```')){ inCode = !inCode; continue; }
+    if(inCode && currentPack){
+      const cm = line.match(/^(\d+)\s+(.+)$/);
+      if(cm){
+        currentPack.cards.push({ qty: parseInt(cm[1],10), name: cm[2].trim() });
+      }
+    }
+  }
+  return packs;
+}
+
+const PACKS = parseMarkdown(RAW_MARKDOWN);
+document.getElementById('stats').textContent =
+  `${PACKS.length} packs · ${new Set(PACKS.map(p=>p.theme)).size} temas`;
+
+/* ========== FEEDBACK LAYER ========== */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* particle palette per pack color — multiple shades emit alternating */
+const PARTICLE_PALETTES = {
+  white:      ['#f5e7a0', '#f0d875', '#e8c668'],
+  blue:       ['#67e8f9', '#3b82f6', '#7dd3fc'],
+  black:      ['#a855f7', '#8b3fbf', '#c084fc'],
+  red:        ['#f97316', '#dc2626', '#fb923c'],
+  green:      ['#22c55e', '#16a34a', '#4ade80'],
+  multicolor: ['#f5e7a0', '#3b82f6', '#8b3fbf', '#dc2626', '#16a34a'],
+};
+
+/* tint colors per pack — each acts as a glow source behind its pack.
+   alphas tuned for focused-source feel: visible halo, fades toward edges. */
+const TINT_COLORS = {
+  white:      'rgba(245, 231, 160, 0.42)',
+  blue:       'rgba(59, 130, 246, 0.48)',
+  black:      'rgba(139, 63, 191, 0.50)',
+  red:        'rgba(220, 38, 38, 0.42)',
+  green:      'rgba(22, 163, 74, 0.42)',
+  multicolor: 'rgba(201, 162, 74, 0.36)',
+};
+
+class FX {
+  constructor(canvasEl){
+    this.c = canvasEl;
+    this.ctx = canvasEl.getContext('2d');
+    this.dpr = Math.max(1, window.devicePixelRatio || 1);
+    this.particles = [];
+    this.running = false;
+    this.lastT = 0;
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+  resize(){
+    const w = window.innerWidth, h = window.innerHeight;
+    this.c.width = Math.floor(w * this.dpr);
+    this.c.height = Math.floor(h * this.dpr);
+    this.c.style.width = w + 'px';
+    this.c.style.height = h + 'px';
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+  emitFromElement(el, colors, count = 14){
+    if(REDUCED_MOTION) return;
+    if(!el) return;
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    this.emit(x, y, colors, count, Math.min(r.width, r.height) * 0.35);
+  }
+  emit(x, y, colors, count, radius = 8){
+    if(REDUCED_MOTION) return;
+    const now = performance.now();
+    for(let i = 0; i < count; i++){
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 60 + Math.random() * 80;  // px/s — settles ~20-40px after drag
+      const life  = 380 + Math.random() * 140;
+      // spawn slightly off-center so they don't all start at one point
+      const spawnR = Math.random() * radius;
+      this.particles.push({
+        x: x + Math.cos(angle) * spawnR,
+        y: y + Math.sin(angle) * spawnR,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 25, // slight upward bias — embers float
+        born: now,
+        life,
+        color: colors[i % colors.length],
+        size: 1.4 + Math.random() * 1.8,
+      });
+    }
+    if(!this.running) this.start();
+  }
+  start(){
+    this.running = true;
+    this.lastT = performance.now();
+    requestAnimationFrame((t) => this.tick(t));
+  }
+  tick(now){
+    const dt = Math.min((now - this.lastT) / 1000, 0.05);
+    this.lastT = now;
+    const w = this.c.width / this.dpr, h = this.c.height / this.dpr;
+    this.ctx.clearRect(0, 0, w, h);
+    this.ctx.globalCompositeOperation = 'lighter';
+    const remaining = [];
+    for(const p of this.particles){
+      const age = now - p.born;
+      if(age >= p.life) continue;
+      const t = age / p.life;
+      // integrate with drag
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.pow(0.34, dt);  // strong drag — settles fast
+      p.vy *= Math.pow(0.34, dt);
+      p.vy += 40 * dt;             // gentle gravity
+      // alpha curve: rise then fade
+      const alpha = t < 0.15 ? (t / 0.15) * 0.85 : (1 - (t - 0.15) / 0.85) * 0.85;
+      this.ctx.globalAlpha = Math.max(0, alpha);
+      this.ctx.fillStyle = p.color;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      this.ctx.fill();
+      remaining.push(p);
+    }
+    this.ctx.globalAlpha = 1;
+    this.ctx.globalCompositeOperation = 'source-over';
+    this.particles = remaining;
+    if(this.particles.length > 0){
+      requestAnimationFrame((t) => this.tick(t));
+    } else {
+      this.running = false;
+    }
+  }
+}
+
+const fx = new FX(document.getElementById('fx-canvas'));
+
+function packPaletteOf(pack){
+  if(!pack) return PARTICLE_PALETTES.multicolor;
+  return PARTICLE_PALETTES[pack.color] || PARTICLE_PALETTES.multicolor;
+}
+
+/* tint update — true cross-fade between front/back layer per side.
+   only setAttribute is used; no inline styles, no style.setProperty. */
+const _tintActiveSide = { left: 1, right: 1 };
+
+function applyTintToSide(side, newColor){
+  const cur = _tintActiveSide[side];
+  const nxt = cur === 1 ? 2 : 1;
+  const curEl = document.getElementById(`tint-${side}-${cur}`);
+  const nxtEl = document.getElementById(`tint-${side}-${nxt}`);
+
+  if(!newColor){
+    curEl.removeAttribute('data-active');
+    nxtEl.removeAttribute('data-active');
+    return;
+  }
+
+  // already showing this exact color on the active layer → no-op
+  if(curEl.hasAttribute('data-active') &&
+     curEl.getAttribute('data-color') === newColor) return;
+
+  // prep the idle layer with the new color, force reflow so the bg is committed
+  // before opacity transition kicks in, then swap active flags simultaneously
+  nxtEl.setAttribute('data-color', newColor);
+  void nxtEl.offsetWidth;
+  nxtEl.setAttribute('data-active', '');
+  curEl.removeAttribute('data-active');
+  _tintActiveSide[side] = nxt;
+}
+
+function updateTint(){
+  const c0 = state.slots[0] ? state.slots[0].color : null;
+  const c1 = state.slots[1] ? state.slots[1].color : null;
+  applyTintToSide('left',  c0);
+  applyTintToSide('right', c1);
+}
+
+/* ========== STATE & ROLL ========== */
+const state = {
+  slots: [null, null],
+  locked: [false, false],
+  animating: false
+};
+
+/* pick a random pack whose theme differs from excludeTheme (or any if null) */
+function pickPackExcludingTheme(excludeTheme){
+  const pool = excludeTheme ? PACKS.filter(p => p.theme !== excludeTheme) : PACKS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function rollAll(){
+  if(state.animating) return;
+  if(state.locked[0] && state.locked[1]) return;
+  const willRoll = [!state.locked[0], !state.locked[1]];
+  animateRoll(willRoll);
+}
+
+function rollSlot(idx){
+  if(state.animating) return;
+  if(state.locked[idx]) return;
+  if(!state.slots[1-idx]){ animateRoll([true,true]); return; }
+  const willRoll = [false,false];
+  willRoll[idx] = true;
+  animateRoll(willRoll);
+}
+
+/* ========== ANIMATION ========== */
+function animateRoll(willRoll){
+  state.animating = true;
+  const stageInitial = document.getElementById('stage-initial');
+  const stageReveal = document.getElementById('stage-reveal');
+  stageInitial.classList.add('hidden');
+  stageReveal.classList.add('active');
+  document.getElementById('combined').classList.remove('show');
+  hideHover();  // any pinned preview from the previous list is now stale
+
+  const slots = [0,1];
+  const packEls = slots.map(i => document.getElementById('pack-'+i));
+
+  // precompute final picks so the "distinct themes" constraint holds
+  const finals = [state.slots[0], state.slots[1]];
+  if(willRoll[0] && willRoll[1]){
+    finals[0] = pickPackExcludingTheme(null);
+    finals[1] = pickPackExcludingTheme(finals[0].theme);
+  } else if(willRoll[0]){
+    finals[0] = pickPackExcludingTheme(finals[1].theme);
+  } else if(willRoll[1]){
+    finals[1] = pickPackExcludingTheme(finals[0].theme);
+  }
+
+  // start reel animation on rolling slots — strip color attributes so the slot
+  // visually goes "neutral" while it cycles (no color flicker on stripe/tag/tint)
+  slots.forEach(i=>{
+    if(willRoll[i]){
+      const el = packEls[i];
+      el.classList.add('rolling');
+      el.removeAttribute('data-color');
+      el.classList.remove('multi');
+      el.querySelector('[data-tag]').textContent = '';
+      el.querySelector('[data-meta]').textContent = '— rolling —';
+    }
+  });
+
+  const start = performance.now();
+
+  const settleSlot = (i) => {
+    state.slots[i] = finals[i];
+    packEls[i].classList.remove('rolling');
+    // sweep + content fade
+    packEls[i].classList.remove('settling');
+    void packEls[i].offsetWidth;  // restart animation
+    packEls[i].classList.add('settling');
+    packEls[i].classList.add('settle');
+    setTimeout(() => {
+      packEls[i].classList.remove('settle');
+      packEls[i].classList.remove('settling');
+    }, CONFIG.roll.cleanupMs);
+    renderPack(i, state.slots[i], { ghost: false });
+    updateTint();
+  };
+
+  const tick = () => {
+    const elapsed = performance.now() - start;
+    if(elapsed < CONFIG.roll.cycleMs){
+      slots.forEach(i=>{
+        if(willRoll[i]){
+          const fake = PACKS[Math.floor(Math.random()*PACKS.length)];
+          renderPack(i, fake, { ghost: true });
+        }
+      });
+      setTimeout(tick, CONFIG.roll.tickMs);
+    } else {
+      // settle with stagger between packs when both roll
+      const rolling = slots.filter(i => willRoll[i]);
+      if(rolling.length === 2){
+        settleSlot(rolling[0]);
+        setTimeout(() => settleSlot(rolling[1]), CONFIG.roll.staggerMs);
+        setTimeout(() => { state.animating = false; renderCombined(); }, CONFIG.roll.afterBothMs);
+      } else if(rolling.length === 1){
+        settleSlot(rolling[0]);
+        setTimeout(() => { state.animating = false; renderCombined(); }, CONFIG.roll.afterSingleMs);
+      } else {
+        state.animating = false;
+        renderCombined();
+      }
+    }
+  };
+  tick();
+}
+
+/* ========== RENDER ========== */
+const COLOR_LABELS = {
+  white:'WHITE', blue:'BLUE', black:'BLACK',
+  red:'RED', green:'GREEN', multicolor:'RAINBOW'
+};
+
+/* one-line strategic summary per theme (46 themes, all variants share the
+   same description — variants differ in specific cards, not in game plan) */
+const THEME_DESCRIPTIONS = {
+  // white
+  'angels':            'ángeles voladores enormes y lifegain',
+  'basri':             'soldados blancos con basri y +1/+1',
+  'doctor':            'lifegain agresivo y curaciones que escalan',
+  'dogs':              'manada de perritos atacando juntos',
+  'enchanted':         'auras pegadas a una criatura gigante',
+  'feathered friends': 'voladores blancos haciendo daño por aire',
+  'heavily armored':   'criaturones con armadura y +1/+1',
+  'legion':            'tokens en masa y anthems globales',
+  'unicorns':          'unicornios con efectos al entrar',
+  // blue
+  'above the clouds':  'voladores azules con tap-down y bounce',
+  'archaeology':       'artefactos al cementerio y recursión',
+  'milling':           'fundir la library del rival hasta cero',
+  'pirates':           'piratas saqueando con treasure tokens',
+  'spirits':           'espíritus en flash, rebote y flicker',
+  'teferi':            'control puro: counters, tempo y card draw',
+  'under the sea':     'krakens y bestias marinas gigantes',
+  'well-read':         'robar cartas y escalar con cada draw',
+  'wizards':           'magos casteando spells, counters y bounce',
+  // black
+  'discarding':        'forzar discards y castigar mano vacía',
+  'liliana':           'liliana, zombies y reanimación',
+  'minions':           'aristocrats: sacrificar chicas y drenar vida',
+  'phyrexian':         'phyrexians que se autosacrifican y vuelven',
+  'reanimated':        'criaturones al cementerio y revivirlos',
+  'rogues':            'rogues unblockable que millan y roban',
+  'spooky':            'zombies y triggers por muertes',
+  'vampires':          'vampiros drenando vida con cada attack',
+  'witchcraft':        'brujas con cauldron, food y sacrifice',
+  // red
+  'chandra':           'chandra slingueando burn a la cara',
+  'devilish':          'diablitos suicidas con daño al morir',
+  'dragons':           'rampear hacia dragones voladores',
+  'goblins':           'horda de goblins atacando de frente',
+  'lightning':         'burn directo a la cara, sin sutilezas',
+  'minotaurs':         'minotauros aggro pegando duro',
+  'seismic':           'spells masivos dañando boards enteros',
+  'smashing':          'criaturones rojos y fling como finisher',
+  'spellcasting':      'prowess: double-spells y crecer hechizando',
+  // green
+  'cats':              'gatos felinos buffeándose entre ellos',
+  'dinosaurs':         'rampear hacia dinos gigantes con enrage',
+  'elves':             'elfos ramp y mana exponencial',
+  'garruk':            'garruk unleashed, bestias con trample',
+  'lands':             'lands-matter, animar tierras como criaturas',
+  'plus one':          '+1/+1 counters duplicándose en todos',
+  'predatory':         'fight effects entre bestias',
+  'tree-hugging':      'treefolk y walls defensivos, juego lento',
+  'walls':             'muros con defender atacando por toughness',
+  // multicolor
+  'rainbow':           '5-color goodstuff con bombas legendarias',
+};
+
+function renderPack(idx, pack, opts={}){
+  const el = document.getElementById('pack-'+idx);
+  el.querySelector('[data-name]').textContent = pack.name.toUpperCase();
+  if(opts.ghost) return;  // rolling cycle: only the name flicker, no color/tag/meta churn
+  el.dataset.color = pack.color || '';
+  el.classList.toggle('multi', pack.color === 'multicolor');
+  el.querySelector('[data-tag]').textContent = COLOR_LABELS[pack.color] || '';
+  el.querySelector('[data-meta]').textContent = THEME_DESCRIPTIONS[pack.theme] || '';
+}
+
+function consolidate(a, b){
+  const qty = new Map();
+  const meta = new Map();
+  for(const card of [...a.cards, ...b.cards]){
+    const ex = exportCard(card.name);
+    const key = ex.name;
+    if(qty.has(key)) qty.set(key, qty.get(key) + card.qty);
+    else { qty.set(key, card.qty); meta.set(key, ex); }
+  }
+  // lands (empty mana_cost) sink; spells sort by cmc asc then alpha
+  const entries = [...qty.keys()].map(n => ({ name:n, qty:qty.get(n), m:meta.get(n) }));
+  const isLand = (e) => !e.m.mc;
+  const spells = entries.filter(e => !isLand(e)).sort((a,b) => a.m.cmc - b.m.cmc || a.name.localeCompare(b.name));
+  const lands  = entries.filter(e =>  isLand(e)).sort((a,b) => {
+    const av = BASIC_VANILLA.has(a.name), bv = BASIC_VANILLA.has(b.name);
+    if(av !== bv) return av ? 1 : -1;  // non-basic lands before basics
+    return a.name.localeCompare(b.name);
+  });
+  return [...spells, ...lands].map(e => ({
+    qty:   e.qty,
+    name:  e.name,
+    cn:    e.m.cn,
+    set:   e.m.set,
+    mc:    e.m.mc,
+    cmc:   e.m.cmc,
+    basic: BASIC_VANILLA.has(e.name),
+  }));
+}
+
+function isThemedBasic(name){
+  for(const b of BASIC_VANILLA){
+    if(name.endsWith(' '+b)) return true;
+  }
+  return false;
+}
+
+function renderCombined(){
+  const [a,b] = state.slots;
+  if(!a || !b) return;
+  const cards = consolidate(a, b);
+  const total = cards.reduce((s,c)=>s+c.qty,0);
+  document.getElementById('card-count').textContent = `${total} cartas · ${cards.length} únicas`;
+
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = '';
+  for(const c of cards){
+    const row = document.createElement('div');
+    row.className = 'card-row' + (c.basic ? ' basic' : '');
+    if(c.set && c.cn !== null){
+      row.dataset.set = c.set;
+      row.dataset.cn = c.cn;
+    }
+    row.innerHTML = `<span class="card-qty">${c.qty}</span><span class="card-name">${escapeHtml(c.name)}</span><span class="card-mana">${manaCostHtml(c.mc)}</span>`;
+    grid.appendChild(row);
+  }
+  document.getElementById('combined').classList.add('show');
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+/* parse "{2}{W}{U}" → mana-font <i> tags. handles hybrid ({W/U} → ms-wu),
+   twobrid ({2/W} → ms-2w), phyrexian ({W/P} → ms-wp), tap ({T} → ms-tap), etc. */
+function manaCostHtml(mc){
+  if(!mc) return '';
+  return mc.replace(/\{([^}]+)\}/g, (_, sym) => {
+    const cls = sym.toLowerCase().replace(/\//g, '');
+    return `<i class="ms ms-${cls} ms-cost"></i>`;
+  });
+}
+
+function exportText(){
+  const [a,b] = state.slots;
+  if(!a || !b) return '';
+  const cards = consolidate(a, b);
+  return cards.map(c =>
+    c.cn !== null ? `${c.qty} ${c.name} (${c.set}) ${c.cn}` : `${c.qty} ${c.name}`
+  ).join('\n');
+}
+
+/* ========== EVENTS ========== */
+document.getElementById('roll-main').addEventListener('click', (e)=>{
+  // initial roll: emit gold/cream from the button
+  fx.emitFromElement(e.currentTarget, PARTICLE_PALETTES.white, 18);
+  rollAll();
+});
+
+document.getElementById('reroll-all').addEventListener('click', (e)=>{
+  // "volver a tirar" uses the average of both pack palettes (or gold if empty)
+  const pals = state.slots.filter(p => p).map(p => packPaletteOf(p));
+  const combined = pals.length === 2
+    ? interleave(pals[0], pals[1])
+    : pals[0] || PARTICLE_PALETTES.white;
+  fx.emitFromElement(e.currentTarget, combined, 16);
+  state.locked = [false, false];
+  updateLockUI();
+  rollAll();
+});
+
+function interleave(a, b){
+  const out = [];
+  const n = Math.max(a.length, b.length);
+  for(let i = 0; i < n; i++){
+    if(a[i % a.length]) out.push(a[i % a.length]);
+    if(b[i % b.length]) out.push(b[i % b.length]);
+  }
+  return out;
+}
+
+document.getElementById('copy-btn').addEventListener('click', async (e)=>{
+  // emit particles split: half from each pack's palette
+  const pals = state.slots.filter(p => p).map(p => packPaletteOf(p));
+  const combined = pals.length === 2 ? interleave(pals[0], pals[1])
+                 : pals[0] || PARTICLE_PALETTES.white;
+  fx.emitFromElement(e.currentTarget, combined, 20);
+
+  const txt = exportText();
+  const btn = document.getElementById('copy-btn');
+  try {
+    await navigator.clipboard.writeText(txt);
+    const prev = btn.textContent;
+    btn.textContent = 'COPIADO';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = prev; btn.classList.remove('copied'); }, CONFIG.copyToastMs);
+  } catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'COPIADO';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = 'COPIAR LISTA COMBINADA'; btn.classList.remove('copied'); }, CONFIG.copyToastMs);
+  }
+});
+
+[0,1].forEach(idx=>{
+  const el = document.getElementById('pack-'+idx);
+  const lockBtn = el.querySelector('[data-action="lock"]');
+  const rerollBtn = el.querySelector('[data-action="reroll"]');
+
+  lockBtn.addEventListener('click', (e)=>{
+    if(!state.slots[idx]) return;
+    fx.emitFromElement(e.currentTarget, packPaletteOf(state.slots[idx]), 12);
+    state.locked[idx] = !state.locked[idx];
+    updateLockUI();
+  });
+
+  rerollBtn.addEventListener('click', (e)=>{
+    if(state.slots[idx]) fx.emitFromElement(e.currentTarget, packPaletteOf(state.slots[idx]), 12);
+    rollSlot(idx);
+  });
+});
+
+function updateLockUI(){
+  [0,1].forEach(idx=>{
+    const el = document.getElementById('pack-'+idx);
+    const btn = el.querySelector('[data-action="lock"]');
+    if(state.locked[idx]){
+      btn.classList.add('locked');
+      btn.textContent = 'LOCKED';
+    } else {
+      btn.classList.remove('locked');
+      btn.textContent = 'LOCK';
+    }
+  });
+}
+
+/* keyboard: space/enter to roll */
+window.addEventListener('keydown', e=>{
+  if(e.code === 'Space' || e.code === 'Enter'){
+    if(document.activeElement && ['BUTTON','INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+    e.preventDefault();
+    rollAll();
+  }
+});
+
+/* ========== HOVER CARD PREVIEW ==========
+   on hover of a card row, fetch the card image from scryfall via
+   /cards/{set}/{cn}?format=image and float it near the cursor.
+   browser HTTP cache makes repeat hovers instant. */
+const HOVER_W = 320;
+const HOVER_H = Math.round(HOVER_W * 680 / 488);  // matches CSS aspect-ratio
+const HOVER_MARGIN = 18;
+const HOVER_EDGE = 8;
+
+const hoverImg = document.createElement('img');
+hoverImg.id = 'hover-preview';
+hoverImg.alt = '';
+document.body.appendChild(hoverImg);
+
+let currentHoverKey = null;
+let pendingPointer = null;  // latest {x,y} awaiting an rAF tick
+let pendingFrame = false;
+
+function hoverImageUrl(set, cn){
+  return `https://api.scryfall.com/cards/${encodeURIComponent(set.toLowerCase())}/${encodeURIComponent(cn)}?format=image&version=normal`;
+}
+
+function showHoverFor(row, x, y){
+  const set = row.dataset.set;
+  const cn  = row.dataset.cn;
+  if(!set || !cn) return;
+  const key = `${set}/${cn}`;
+  // dedup guard prevents `loaded` flicker on same-card mousemove between rows
+  if(currentHoverKey !== key){
+    currentHoverKey = key;
+    hoverImg.classList.remove('loaded');
+    hoverImg.src = hoverImageUrl(set, cn);
+  }
+  hoverImg.classList.add('show');
+  positionHover(x, y);
+}
+
+function hideHover(){
+  hoverImg.classList.remove('show','loaded');
+  currentHoverKey = null;
+}
+
+function positionHover(x, y){
+  let left = x + HOVER_MARGIN;
+  if(left + HOVER_W > window.innerWidth - HOVER_EDGE) left = x - HOVER_W - HOVER_MARGIN;
+  if(left < HOVER_EDGE) left = HOVER_EDGE;
+  let top = y - HOVER_H / 2;
+  if(top < HOVER_EDGE) top = HOVER_EDGE;
+  if(top + HOVER_H > window.innerHeight - HOVER_EDGE) top = window.innerHeight - HOVER_H - HOVER_EDGE;
+  hoverImg.style.left = left + 'px';
+  hoverImg.style.top  = top  + 'px';
+}
+
+function schedulePosition(x, y){
+  pendingPointer = { x, y };
+  if(pendingFrame) return;
+  pendingFrame = true;
+  requestAnimationFrame(() => {
+    pendingFrame = false;
+    if(pendingPointer && currentHoverKey) positionHover(pendingPointer.x, pendingPointer.y);
+  });
+}
+
+hoverImg.addEventListener('load', () => hoverImg.classList.add('loaded'));
+
+const cardGrid = document.getElementById('card-grid');
+cardGrid.addEventListener('mouseover', (e) => {
+  const row = e.target.closest('.card-row');
+  if(row && row.dataset.set) showHoverFor(row, e.clientX, e.clientY);
+});
+cardGrid.addEventListener('mousemove', (e) => {
+  if(!currentHoverKey) return;
+  const row = e.target.closest('.card-row');
+  if(!row || !row.dataset.set){ hideHover(); return; }
+  schedulePosition(e.clientX, e.clientY);
+}, { passive: true });
+cardGrid.addEventListener('mouseleave', hideHover);
+</script>
+
+</body>
+</html>

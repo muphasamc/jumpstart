@@ -1,0 +1,19 @@
+# OS noise
+.DS_Store
+Thumbs.db
+
+# editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs / temp
+*.log
+*.tmp
+
+# node (if scripts ever grow into a real project)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
