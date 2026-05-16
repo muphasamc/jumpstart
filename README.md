@@ -4,7 +4,9 @@ Randomizador de packs de Magic: The Gathering Jumpstart 2020 (set JMP). Tira dos
 
 ## uso
 
-Abrir `jumpstart_randomizer.html` en un browser moderno. No hay build step ni instalación.
+Online: https://muphasamc.github.io/jumpstart/
+
+Local: abrir `index.html` en un browser moderno. No hay build step ni instalación.
 
 Para desarrollo local:
 

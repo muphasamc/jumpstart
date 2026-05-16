@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// validador del data embebido en jumpstart_randomizer.html.
+// validador del data embebido en index.html.
 // verifica invariantes del set JMP: cantidad de packs, tamaño de cada pack,
 // cobertura de CARD_DATA, temas únicos, collector numbers únicos.
 
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const htmlPath = resolve(__dirname, '..', 'jumpstart_randomizer.html');
+const htmlPath = resolve(__dirname, '..', 'index.html');
 const html = readFileSync(htmlPath, 'utf-8');
 
 const mdMatch = html.match(/const RAW_MARKDOWN = `([\s\S]*?)`;/);

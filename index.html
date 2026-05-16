@@ -12,7 +12,6 @@
 :root{
   /* surfaces + ink */
   --bg:#0a0806;
-  --bg-2:#13100c;
   --ink:#f3e9d2;
   --ink-dim:#a8997a;
   --ink-bright:#d5c9af;
@@ -38,7 +37,6 @@
   --rarity-mythic-3:#a02717;
   /* durations — design system scale; one-off literals near keyframes stay literal */
   --dur-instant:50ms;
-  --dur-fast:100ms;
   --dur-snap:150ms;
   --dur-normal:220ms;
   --dur-medium:260ms;
@@ -59,11 +57,9 @@
   --radius-md:4px;
   --radius-lg:6px;
   --radius-xl:14px;
-  /* letter-spacing — tokens cover the four most common; one-off scales stay literal */
+  /* letter-spacing — tokens cover the most common; one-off scales stay literal */
   --ls-tight:0.01em;
-  --ls-normal:0.08em;
   --ls-wide:0.2em;
-  --ls-extra:0.4em;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -188,11 +184,6 @@ body::before{
   pointer-events:none;
   z-index:99;
 }
-@media (prefers-reduced-motion: reduce){
-  .tint-layer{transition:none}
-  #fx-canvas{display:none}
-}
-
 .shell{
   position:relative;
   z-index:2;
@@ -201,45 +192,75 @@ body::before{
   padding:var(--space-lg) 32px var(--space-xl);
 }
 
-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  border-bottom:1px solid var(--frame);
-  padding-bottom:var(--space-md);
-  margin-bottom:18px;
-}
-.brand{
-  font-family:'IM Fell English SC','Cinzel',serif;
-  font-size:32px;
-  letter-spacing:var(--ls-normal);
-  color:var(--gold);
-  text-shadow:0 0 30px rgba(201,162,74,0.4);
-}
-.brand .sub{
-  font-family:'Cinzel',serif;
-  font-size:14px;
-  color:var(--ink-dim);
-  letter-spacing:var(--ls-extra);
-  margin-left:14px;
-  text-transform:uppercase;
-}
-.stats{
-  font-family:'JetBrains Mono',monospace;
-  font-size:13px;
-  color:var(--ink-dim);
-  letter-spacing:0.15em;
-}
-
 /* INITIAL STAGE */
 .stage-initial{
+  position:relative;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  min-height:70vh;
+  min-height:calc(100vh - var(--space-lg) - var(--space-xl));
   gap:48px;
 }
+
+/* hero mosaic: the 46 signature arts laid out as a tileable 9×7 block,
+   doubled to 18×14 so a slow diagonal translate3d loops seamlessly.
+   donut-shaped mask hides the center (lets the title pop) and fades the
+   outer edges (no hard cut). track size + origin keep the viewport fully
+   covered at every animation frame up to ~1920×1080. */
+.hero-mosaic{
+  /* fixed (not absolute): escapes the .shell max-width so the mosaic
+     reaches the actual viewport edges. parent stage-initial uses
+     display:none on .hidden, which also removes this from render. */
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+  opacity:0.28;
+  mask-image:radial-gradient(ellipse 80% 75% at center,
+    transparent 0%,
+    transparent 22%,
+    rgba(0,0,0,0.45) 34%,
+    #000 50%,
+    #000 60%,
+    rgba(0,0,0,0.4) 82%,
+    transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 75% at center,
+    transparent 0%,
+    transparent 22%,
+    rgba(0,0,0,0.45) 34%,
+    #000 50%,
+    #000 60%,
+    rgba(0,0,0,0.4) 82%,
+    transparent 100%);
+}
+.hero-mosaic-track{
+  position:absolute;
+  top:-540px;
+  left:-440px;
+  width:max-content;
+  display:grid;
+  grid-template-columns:repeat(18,320px);
+  grid-auto-rows:240px;
+  animation:mosaicDrift 180s linear infinite;
+  will-change:transform;
+}
+.hero-mosaic-track img{
+  width:320px;
+  height:240px;
+  object-fit:cover;
+  display:block;
+  filter:saturate(0.7) brightness(0.7) contrast(1.05);
+}
+/* period equals one base block (9*320 = 2880, 7*240 = 1680); the doubled
+   layout makes the end frame identical to the start → invisible loop. */
+@keyframes mosaicDrift{
+  from { transform: translate3d(0,0,0); }
+  to   { transform: translate3d(-2880px,-1680px,0); }
+}
+.stage-initial > .bigtitle,
+.stage-initial > .roll-btn{ position:relative; z-index:1; }
 .bigtitle{
   font-family:'Cinzel',serif;
   font-weight:900;
@@ -254,15 +275,19 @@ header{
   text-shadow:0 0 80px rgba(201,162,74,0.2);
   filter:drop-shadow(0 4px 0 rgba(0,0,0,0.6));
 }
-.bigtitle .small{
-  display:block;
-  font-size:0.18em;
-  letter-spacing:0.55em;
+.hero-blurb{
+  position:relative;
+  z-index:1;
+  font-family:'JetBrains Mono',monospace;
+  font-size:15px;
+  line-height:1.75;
+  letter-spacing:0.04em;
   color:var(--ink-dim);
-  -webkit-text-fill-color:var(--ink-dim);
-  margin-top:24px;
-  font-weight:500;
+  text-align:center;
+  max-width:680px;
+  margin:-16px auto 0;
 }
+.hero-blurb b, .hero-blurb strong{ color:var(--ink-bright); font-weight:700; }
 
 .roll-btn{
   font-family:'Cinzel',serif;
@@ -314,7 +339,9 @@ header{
 
 /* REVEAL STAGE */
 .stage-reveal{display:none}
-.stage-reveal.active{display:block}
+/* matches the visual gap the old header used to reserve, so the packs
+   don't sit flush against the top of the viewport. */
+.stage-reveal.active{display:block;padding-top:68px}
 
 .packs{
   display:grid;
@@ -362,6 +389,11 @@ header{
   /* mask fades the image's left edge so the cut blends instead of cutting hard */
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 25%, #000 100%);
           mask-image: linear-gradient(90deg, transparent 0%, #000 25%, #000 100%);
+  /* base state matches emblemEntry's end frame so removing data-color at
+     roll-start doesn't snap the image back to translateY(0). the transition
+     smooths the case where reroll fires mid-animation. */
+  transform: translateY(-13%);
+  transition: transform 0.2s ease-out;
 }
 .pack-art::after{
   content:"";
@@ -382,9 +414,6 @@ header{
 @keyframes emblemEntry{
   from{ transform: scale(1.06) translateY(4%); }
   to  { transform: scale(1) translateY(-13%); }
-}
-@media (prefers-reduced-motion: reduce){
-  .pack[data-color] .pack-art::before{ animation:none; }
 }
 .pack::before{
   content:"";
@@ -418,7 +447,7 @@ header{
   justify-content:space-between;
   align-items:flex-start;
   gap:var(--space-lg);
-  margin-bottom:12px;
+  margin-bottom:var(--space-md);
 }
 .pack-label{
   font-family:'JetBrains Mono',monospace;
@@ -615,14 +644,6 @@ header{
   100%{filter:brightness(1)}
 }
 
-@media (prefers-reduced-motion: reduce){
-  .pack.rolling .pack-name{animation:none}
-  .pack.settling .sweep{animation:none; opacity:0}
-  .pack.settling .pack-name,
-  .pack.settling .pack-meta{animation:none}
-  .pack.settle{animation:none}
-}
-
 /* COMBINED LIST */
 .combined{
   border:1px solid var(--frame-2);
@@ -641,7 +662,7 @@ header{
   justify-content:space-between;
   align-items:flex-end;
   margin-bottom:10px;
-  padding-bottom:8px;
+  padding-bottom:var(--space-sm);
   border-bottom:1px solid var(--frame);
   flex-wrap:wrap;
   gap:var(--space-lg);
@@ -738,7 +759,7 @@ header{
 
 .card-grid{
   column-width:280px;
-  column-gap:28px;
+  column-gap:var(--space-2xl);
   margin-bottom:14px;
 }
 .card-row{
@@ -783,7 +804,7 @@ header{
   font-weight:700;
   font-size:16px;
   letter-spacing:0.18em;
-  padding:12px 28px;
+  padding:var(--space-md) var(--space-2xl);
   background:transparent;
   border:1px solid var(--gold);
   color:var(--gold-bright);
@@ -857,7 +878,18 @@ header{
 }
 #hover-preview.show{visibility:visible}
 #hover-preview.loaded{opacity:1}
+/* a11y: motion-sensitive users — disable particle canvas, mosaic drift,
+   reel/settle animations, tint cross-fade, and hover-preview fade. */
 @media (prefers-reduced-motion: reduce){
+  .tint-layer{transition:none}
+  #fx-canvas{display:none}
+  .hero-mosaic-track{animation:none}
+  .pack[data-color] .pack-art::before{animation:none}
+  .pack.rolling .pack-name{animation:none}
+  .pack.settling .sweep{animation:none; opacity:0}
+  .pack.settling .pack-name,
+  .pack.settling .pack-meta{animation:none}
+  .pack.settle{animation:none}
   #hover-preview{transition:none}
 }
 
@@ -875,19 +907,15 @@ header{
 <canvas id="fx-canvas"></canvas>
 
 <div class="shell">
-  <header>
-    <div>
-      <span class="brand">jumpstart</span><span class="brand sub">randomizer</span>
-    </div>
-    <div class="stats" id="stats">— packs cargados</div>
-  </header>
-
   <section class="stage-initial" id="stage-initial">
+    <div class="hero-mosaic" id="hero-mosaic" aria-hidden="true"></div>
     <h1 class="bigtitle">
       DOS PACKS<br>UN MAZO
-      <span class="small">cuarenta cartas · destino aleatorio</span>
     </h1>
-    <button class="roll-btn" id="roll-main">DALE</button>
+    <p class="hero-blurb">
+      Jumpstart es un formato de Magic donde cada jugador toma dos packs temáticos de 20 cartas al azar y los combina en un mazo de 40 listo para jugar. Sin construir, sin sideboard — agarrás, mezclás y tirás.
+    </p>
+    <button class="roll-btn" id="roll-main">ROLL</button>
   </section>
 
   <section class="stage-reveal" id="stage-reveal">
@@ -936,11 +964,11 @@ header{
       <div class="combined-head">
         <div class="combined-head-left">
           <span class="combined-title">mazo combinado</span>
-          <span class="combined-count" id="card-count">— cartas</span>
+          <span class="combined-count" id="card-count" aria-live="polite" aria-atomic="true">— cartas</span>
         </div>
         <div class="combined-head-right">
-          <div class="deck-stats" id="deck-stats"></div>
-          <div class="mana-curve" id="mana-curve"></div>
+          <div class="deck-stats" id="deck-stats" aria-live="polite" aria-atomic="true"></div>
+          <div class="mana-curve" id="mana-curve" aria-live="polite" aria-atomic="true"></div>
         </div>
       </div>
       <div class="card-grid" id="card-grid"></div>
@@ -4168,10 +4196,16 @@ function exportCard(name){
   }
   const d = CARD_DATA[name];
   if(d) return { name, set:d[0], cn:d[1], mc:d[2], cmc:d[3] };
+  // validate-data.mjs guarantees full coverage; warn here so any future drift
+  // between RAW_MARKDOWN and CARD_DATA surfaces in devtools instead of silently
+  // emitting an export line without (SET) cn.
+  console.warn(`[exportCard] "${name}" sin lookup en CARD_DATA ni en básicos`);
   return { name, set:null, cn:null, mc:'', cmc:0 };
 }
 
-/* ========== PARSER · markdown → PACKS[] ========== */
+/* ========== PARSER · markdown → PACKS[] ==========
+   logic is mirrored in scripts/validate-data.mjs (the validator parses the
+   same RAW_MARKDOWN out-of-band); keep both in sync when touching the format. */
 function parseMarkdown(md){
   const packs = [];
   const lines = md.split('\n');
@@ -4205,8 +4239,6 @@ function parseMarkdown(md){
 }
 
 const PACKS = parseMarkdown(RAW_MARKDOWN);
-document.getElementById('stats').textContent =
-  `${PACKS.length} packs · ${new Set(PACKS.map(p=>p.theme)).size} temas`;
 
 /* ========== UTILS ========== */
 function randomOf(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
@@ -4273,15 +4305,16 @@ class FX {
     const P = CONFIG.particles;
     for(let i = 0; i < count; i++){
       const angle = Math.random() * Math.PI * 2;
+      const cosA = Math.cos(angle), sinA = Math.sin(angle);
       const speed = P.speedMin + Math.random() * P.speedRange;
       const life  = P.lifeMin  + Math.random() * P.lifeRange;
       // spawn slightly off-center so they don't all start at one point
       const spawnR = Math.random() * radius;
       this.particles.push({
-        x: x + Math.cos(angle) * spawnR,
-        y: y + Math.sin(angle) * spawnR,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - P.upwardBias,
+        x: x + cosA * spawnR,
+        y: y + sinA * spawnR,
+        vx: cosA * speed,
+        vy: sinA * speed - P.upwardBias,
         born: now,
         life,
         color: colors[i % colors.length],
@@ -4445,12 +4478,12 @@ function animateRoll(willRoll){
   // strip color attrs so the slot looks neutral while reeling — avoids flicker on stripe/tag/tint
   slots.forEach(i=>{
     if(willRoll[i]){
-      const el = packEls[i];
-      el.classList.add('rolling');
-      el.removeAttribute('data-color');
-      el.classList.remove('multi');
-      el.querySelector('[data-tag]').textContent = '';
-      el.querySelector('[data-meta]').textContent = '';
+      const refs = PACK_REFS[i];
+      refs.el.classList.add('rolling');
+      refs.el.removeAttribute('data-color');
+      refs.el.classList.remove('multi');
+      refs.tagEl.textContent = '';
+      refs.metaEl.textContent = '';
       applyTintToSide(i === 0 ? 'left' : 'right', null);
     }
   });
@@ -4640,20 +4673,51 @@ const EMBLEM_URLS = {};
   }
 })();
 
+/* fill the home hero mosaic. build a 9×7 base block from the shuffled
+   signature arts (cycles the 46 unique urls to reach 63), then lay out
+   18×14 cells where cell (r,c) sources base[(r%7)*9 + (c%9)]. that makes
+   the right half match the left and the bottom half match the top, so
+   the @keyframes diagonal translate loops without a visible seam. */
+(function fillHeroMosaic(){
+  const host = document.getElementById('hero-mosaic');
+  if(!host) return;
+  const urls = Object.values(EMBLEM_URLS);
+  if(!urls.length) return;
+  const pool = urls.slice().sort(() => Math.random() - 0.5);
+  const baseCols = 9, baseRows = 7;
+  const base = [];
+  for(let i = 0; i < baseCols * baseRows; i++) base.push(pool[i % pool.length]);
+  const totalCols = baseCols * 2, totalRows = baseRows * 2;
+  const track = document.createElement('div');
+  track.className = 'hero-mosaic-track';
+  const frag = document.createDocumentFragment();
+  for(let r = 0; r < totalRows; r++){
+    for(let c = 0; c < totalCols; c++){
+      const img = document.createElement('img');
+      img.src = base[(r % baseRows) * baseCols + (c % baseCols)];
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = '';
+      frag.appendChild(img);
+    }
+  }
+  track.appendChild(frag);
+  host.appendChild(track);
+})();
+
 function renderPack(idx, pack, opts={}){
-  const el = PACK_REFS[idx].el;
-  el.querySelector('[data-name]').textContent = pack.name.toUpperCase();
+  const refs = PACK_REFS[idx];
+  refs.nameEl.textContent = pack.name.toUpperCase();
   if(opts.ghost) return;  // rolling cycle: only the name flicker, no color/tag/meta churn
-  el.dataset.color = pack.color || '';
-  el.classList.toggle('multi', pack.color === 'multicolor');
-  el.querySelector('[data-tag]').textContent = COLOR_LABELS[pack.color] || '';
-  el.querySelector('[data-meta]').textContent = THEME_DESCRIPTIONS[pack.theme] || '';
+  refs.el.dataset.color = pack.color || '';
+  refs.el.classList.toggle('multi', pack.color === 'multicolor');
+  refs.tagEl.textContent = COLOR_LABELS[pack.color] || '';
+  refs.metaEl.textContent = THEME_DESCRIPTIONS[pack.theme] || '';
   const rarity = PACK_RARITY[pack.theme];
-  const rEl = el.querySelector('.pack-rarity');
-  if(rarity){ rEl.setAttribute('data-rarity', rarity); rEl.title = RARITY_LABELS[rarity]; }
-  else { rEl.removeAttribute('data-rarity'); rEl.title = ''; }
+  if(rarity){ refs.rarityEl.setAttribute('data-rarity', rarity); refs.rarityEl.title = RARITY_LABELS[rarity]; }
+  else { refs.rarityEl.removeAttribute('data-rarity'); refs.rarityEl.title = ''; }
   const emblem = EMBLEM_URLS[pack.theme];
-  el.style.setProperty('--emblem-bg', emblem ? `url("${emblem}")` : 'none');
+  refs.el.style.setProperty('--emblem-bg', emblem ? `url("${emblem}")` : 'none');
 }
 
 function consolidate(a, b){
@@ -4710,8 +4774,10 @@ function renderCombined(){
 
 /* deck insights: avg cmc (excluding lands) + creature/spell/land counts,
    plus a stacked-bar curve over cmc buckets 0..7+. cards comes from consolidate(). */
+const CMC_BUCKET_MAX = 7;                          // cards with cmc >= 7 collapse into the last bucket
+const CMC_BUCKET_COUNT = CMC_BUCKET_MAX + 1;       // buckets indexed 0..CMC_BUCKET_MAX inclusive
 function renderDeckInsights(cards){
-  const buckets = Array.from({length:8}, () => ({ creature:0, spell:0 }));
+  const buckets = Array.from({length:CMC_BUCKET_COUNT}, () => ({ creature:0, spell:0 }));
   let creatures = 0, spells = 0, lands = 0;
   let cmcSum = 0, nonLandQty = 0;
   for(const c of cards){
@@ -4720,7 +4786,7 @@ function renderDeckInsights(cards){
     if(isCreature) creatures += c.qty; else spells += c.qty;
     cmcSum += c.cmc * c.qty;
     nonLandQty += c.qty;
-    const idx = Math.min(c.cmc, 7);
+    const idx = Math.min(c.cmc, CMC_BUCKET_MAX);
     buckets[idx][isCreature ? 'creature' : 'spell'] += c.qty;
   }
   const avg = nonLandQty ? (cmcSum / nonLandQty) : 0;
@@ -4744,7 +4810,7 @@ function renderDeckInsights(cards){
          +   `<div class="curve-creature" style="height:${cPct}%"></div>`
          +   `<div class="curve-spell" style="height:${sPct}%"></div>`
          + `</div>`
-         + `<span class="curve-label">${i === 7 ? '7+' : i}</span>`
+         + `<span class="curve-label">${i === CMC_BUCKET_MAX ? CMC_BUCKET_MAX+'+' : i}</span>`
          + `</div>`;
   }).join('');
 }
@@ -4787,23 +4853,25 @@ document.getElementById('reroll-all').addEventListener('click', (e)=>{
   rollAll();
 });
 
+function showCopiedFeedback(btn, restoreLabel){
+  btn.textContent = 'COPIADO';
+  btn.classList.add('copied');
+  setTimeout(()=>{ btn.textContent = restoreLabel; btn.classList.remove('copied'); }, CONFIG.copyToastMs);
+}
+
 document.getElementById('copy-btn').addEventListener('click', async (e)=>{
   emitParticlesForSlots(e.currentTarget, 20);
   const txt = exportText();
   const btn = e.currentTarget;
   try {
     await navigator.clipboard.writeText(txt);
-    const prev = btn.textContent;
-    btn.textContent = 'COPIADO';
-    btn.classList.add('copied');
-    setTimeout(()=>{ btn.textContent = prev; btn.classList.remove('copied'); }, CONFIG.copyToastMs);
+    showCopiedFeedback(btn, btn.textContent);
   } catch(e){
+    // fallback for non-secure contexts / older browsers without Clipboard API
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    btn.textContent = 'COPIADO';
-    btn.classList.add('copied');
-    setTimeout(()=>{ btn.textContent = 'COPIAR LISTA COMBINADA'; btn.classList.remove('copied'); }, CONFIG.copyToastMs);
+    showCopiedFeedback(btn, 'COPIAR LISTA COMBINADA');
   }
 });
 
@@ -4812,6 +4880,10 @@ const PACK_REFS = [0,1].map(idx => {
   const el = document.getElementById('pack-'+idx);
   return {
     el,
+    nameEl:    el.querySelector('[data-name]'),
+    tagEl:     el.querySelector('[data-tag]'),
+    metaEl:    el.querySelector('[data-meta]'),
+    rarityEl:  el.querySelector('.pack-rarity'),
     lockBtn:   el.querySelector('[data-action="lock"]'),
     rerollBtn: el.querySelector('[data-action="reroll"]'),
   };
@@ -4856,7 +4928,8 @@ window.addEventListener('keydown', e=>{
    /cards/{set}/{cn}?format=image and float it near the cursor.
    browser HTTP cache makes repeat hovers instant. */
 /* height derives from MTG card aspect ratio (488x680 art_crop) — matches CSS aspect-ratio on #hover-preview */
-const HOVER_H = Math.round(CONFIG.hover.width * 680 / 488);
+const MTG_CARD_ASPECT = 680 / 488;
+const HOVER_H = Math.round(CONFIG.hover.width * MTG_CARD_ASPECT);
 
 const hoverImg = document.createElement('img');
 hoverImg.id = 'hover-preview';

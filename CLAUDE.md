@@ -4,7 +4,7 @@ Single-file MTG Jumpstart randomizer. Picks two random thematic packs from the J
 
 ## architecture
 
-Everything in `jumpstart_randomizer.html` (no build step, no deps). Inside `<script>`, top to bottom:
+Everything in `index.html` (no build step, no deps). Inside `<script>`, top to bottom:
 
 - `CONFIG` — animation timings, copy toast duration
 - `RAW_MARKDOWN` — 121 pack decklists as a markdown literal, parsed at startup into `PACKS[]`
