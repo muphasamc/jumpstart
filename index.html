@@ -392,7 +392,7 @@ body::before{
   /* base state matches emblemEntry's end frame so removing data-color at
      roll-start doesn't snap the image back to translateY(0). the transition
      smooths the case where reroll fires mid-animation. */
-  transform: translateY(-13%);
+  transform: translateY(0);
   transition: transform 0.2s ease-out;
 }
 .pack-art::after{
@@ -406,14 +406,17 @@ body::before{
     rgba(10,8,6,0.35) 48%,
     rgba(10,8,6,0) 65%);
 }
-/* one-time entry animation: re-triggers each settle because data-color is
-   removed at roll-start (rule stops applying → animation resets) */
+/* re-triggers each settle: data-color removed at roll-start resets the rule.
+   end state mirrors the .pack-art::before base transform so reroll
+   mid-animation doesn't snap. will-change scoped to [data-color] so the
+   compositor layer releases when the attribute is stripped at roll-start. */
 .pack[data-color] .pack-art::before{
-  animation: emblemEntry 5s cubic-bezier(0.2,0.7,0.3,1) forwards;
+  animation: emblemEntry 3.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, filter;
 }
 @keyframes emblemEntry{
-  from{ transform: scale(1.06) translateY(4%); }
-  to  { transform: scale(1) translateY(-13%); }
+  0%   { transform: scale(1.1) translateY(-21%); filter: blur(2px) brightness(1.1); }
+  100% { transform: scale(1) translateY(0); filter: blur(0) brightness(1); }
 }
 .pack::before{
   content:"";
@@ -460,6 +463,13 @@ body::before{
   font-family:'JetBrains Mono',monospace;
   font-size:11px;
   letter-spacing:0.25em;
+  /* inline-flex so min-height applies; align-items centers the text.
+     23px ≈ filled rendered height (11px font + 4×2 padding + 1×2 border).
+     reserved so empty (rolling) state matches filled height — without it,
+     when both packs roll the grid row's stretch anchor shrinks. */
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
   padding:4px 10px;
   border:1px solid var(--c);
   color:var(--c);
@@ -542,6 +552,8 @@ body::before{
   color:var(--ink-bright);
   letter-spacing:0.05em;
   line-height:1.4;
+  /* reserve one line so rolling (text cleared) doesn't collapse layout */
+  min-height:1lh;
   max-width:640px;
 }
 
@@ -996,8 +1008,8 @@ const CONFIG = {
   },
   /* "COPIADO" toast duration on the copy button */
   copyToastMs: 1400,
-  /* scryfall http rate-limit headroom for art_crop preload */
-  preloadStaggerMs: 80,
+  /* scryfall caps requests at ~10/s — 100ms keeps the 121-emblem preload under the ceiling */
+  preloadStaggerMs: 100,
   /* hover preview sizing (width matches CSS; height derives from card aspect) */
   hover: { width: 320, margin: 18, edge: 8 },
   /* canvas particle physics — tuned for short ember bursts on click feedback */
@@ -4551,48 +4563,48 @@ const THEME_DESCRIPTIONS = {
   'dogs':              'manada de perritos atacando juntos',
   'enchanted':         'auras pegadas a una criatura gigante',
   'feathered friends': 'voladores blancos haciendo daño por aire',
-  'heavily armored':   'criaturones con armadura y +1/+1',
-  'legion':            'tokens en masa y anthems globales',
+  'heavily armored':   'bestias con armadura y +1/+1',
+  'legion':            'tokens en masa y buffs globales',
   'unicorns':          'unicornios con efectos al entrar',
   // blue
-  'above the clouds':  'voladores azules con tap-down y bounce',
+  'above the clouds':  'voladores azules e interrumpir planes',
   'archaeology':       'artefactos al cementerio y recursión',
-  'milling':           'fundir la library del rival hasta cero',
+  'milling':           'descartar el mazo del rival hasta cero',
   'pirates':           'piratas saqueando con treasure tokens',
   'spirits':           'espíritus en flash, rebote y flicker',
-  'teferi':            'control puro: counters, tempo y card draw',
+  'teferi':            'control puro: counters, tempo y robar cartas',
   'under the sea':     'krakens y bestias marinas gigantes',
-  'well-read':         'robar cartas y escalar con cada draw',
-  'wizards':           'magos casteando spells, counters y bounce',
+  'well-read':         'robar cartas y escalar con cada robo',
+  'wizards':           'magos casteando spells, counters y trucos',
   // black
-  'discarding':        'forzar discards y castigar mano vacía',
+  'discarding':        'forzar descartes y castigar la mano vacía',
   'liliana':           'liliana, zombies y reanimación',
-  'minions':           'aristocrats: sacrificar chicas y drenar vida',
+  'minions':           'aristocrats: sacrificar criaturas y drenar vida',
   'phyrexian':         'phyrexians que se autosacrifican y vuelven',
-  'reanimated':        'criaturones al cementerio y revivirlos',
-  'rogues':            'rogues unblockable que millan y roban',
+  'reanimated':        'tirar bombas al cementerio y revivirlas',
+  'rogues':            'rogues inbloqueables que descartan y roban',
   'spooky':            'zombies y triggers por muertes',
-  'vampires':          'vampiros drenando vida con cada attack',
-  'witchcraft':        'brujas con cauldron, food y sacrifice',
+  'vampires':          'vampiros drenando vida cada turno',
+  'witchcraft':        'brujas con cauldron, comida y sacrificios',
   // red
-  'chandra':           'chandra slingueando burn a la cara',
+  'chandra':           'chandra pegando daño a la cara',
   'devilish':          'diablitos suicidas con daño al morir',
   'dragons':           'rampear hacia dragones voladores',
   'goblins':           'horda de goblins atacando de frente',
-  'lightning':         'burn directo a la cara, sin sutilezas',
-  'minotaurs':         'minotauros aggro pegando duro',
-  'seismic':           'spells masivos dañando boards enteros',
-  'smashing':          'criaturones rojos y fling como finisher',
+  'lightning':         'daño directo a la cara, sin sutilezas',
+  'minotaurs':         'minotauros aggro pegando duro sin parar',
+  'seismic':           'spells enormes dañando tableros enteros',
+  'smashing':          'gordos rojos y fling como finisher',
   'spellcasting':      'prowess: double-spells y crecer hechizando',
   // green
-  'cats':              'gatos felinos buffeándose entre ellos',
+  'cats':              'felinos buffeándose entre ellos',
   'dinosaurs':         'rampear hacia dinos gigantes con enrage',
-  'elves':             'elfos ramp y mana exponencial',
+  'elves':             'elfos, rampa y mana exponencial',
   'garruk':            'garruk unleashed, bestias con trample',
-  'lands':             'lands-matter, animar tierras como criaturas',
+  'lands':             'animar tierras como criaturas',
   'plus one':          '+1/+1 counters duplicándose en todos',
-  'predatory':         'fight effects entre bestias',
-  'tree-hugging':      'treefolk y walls defensivos, juego lento',
+  'predatory':         'forzar peleas entre bestias',
+  'tree-hugging':      'treefolk y paredes defensivas, juego lento',
   'walls':             'muros con defender atacando por toughness',
   // multicolor
   'rainbow':           '5-color goodstuff con bombas legendarias',
@@ -4625,37 +4637,139 @@ const PACK_RARITY = {
 };
 const RARITY_LABELS = { common:'común', rare:'raro', mythic:'mítico' };
 
-/* signature card per theme: mythic if present, else the most iconic rare;
-   feeds the pack background art via Scryfall art_crop endpoint */
-const THEME_EMBLEM = {
+/* one emblem per pack variant (keyed by pack.name, not theme). every pick is
+   a card that's actually in that variant's 20-card pool — so the art you see
+   is always something printed in the deck you'd open. variants within a theme
+   are chosen for visual contrast (legendary vs spell vs enchantment, etc.).
+   feeds the pack background via Scryfall art_crop, also the home mosaic. */
+const PACK_EMBLEM = {
   // white
-  'angels':'Baneslayer Angel', 'basri':'Basri Ket', 'doctor':'Rhox Faithmender',
-  'dogs':'Isamaru, Hound of Konda', 'enchanted':'Kor Spiritdancer',
-  'feathered friends':'Angel of the Dire Hour', 'heavily armored':'Mikaeus, the Lunarch',
-  'legion':'Lena, Selfless Champion', 'unicorns':'Emiel the Blessed',
+  'angels (1)':              'Baneslayer Angel',
+  'angels (2)':              'Linvala, Keeper of Silence',
+  'basri':                   'Basri Ket',
+  'doctor (1)':              'Speaker of the Heavens',
+  'doctor (2)':              'Angel of Mercy',
+  'doctor (3)':              'Rhox Faithmender',
+  'doctor (4)':              'Alabaster Mage',
+  'dogs (1)':                'Pack Leader',
+  'dogs (2)':                'Isamaru, Hound of Konda',
+  'enchanted (1)':           'Kor Spiritdancer',
+  'enchanted (2)':           'Celestial Mantle',
+  'feathered friends (1)':   'Falconer Adept',
+  'feathered friends (2)':   'Aven Gagglemaster',
+  'feathered friends (3)':   'Angel of the Dire Hour',
+  'feathered friends (4)':   'Archon of Justice',
+  'heavily armored (1)':     "Cathars' Crusade",
+  'heavily armored (2)':     'Patron of the Valiant',
+  'heavily armored (3)':     'Mikaeus, the Lunarch',
+  'heavily armored (4)':     'High Sentinels of Arashin',
+  'legion (1)':              'Inspired Charge',
+  'legion (2)':              'Inspiring Captain',
+  'legion (3)':              'Glorious Anthem',
+  'legion (4)':              'Lena, Selfless Champion',
+  'unicorns':                'Emiel the Blessed',
   // blue
-  'above the clouds':'Windreader Sphinx', 'archaeology':'Scholar of the Lost Trove',
-  'milling':'Bruvac the Grandiloquent', 'pirates':'Corsair Captain', 'spirits':'Shacklegeist',
-  'teferi':'Teferi, Master of Time', 'under the sea':'Pursued Whale',
-  'well-read':'Rhystic Study', 'wizards':'Talrand, Sky Summoner',
+  'above the clouds (1)':    'Inniaz, the Gale Force',
+  'above the clouds (2)':    'Serendib Efreet',
+  'above the clouds (3)':    'Windreader Sphinx',
+  'above the clouds (4)':    'Kira, Great Glass-Spinner',
+  'archaeology (1)':         'Scholar of the Lost Trove',
+  'archaeology (2)':         'Dreamstone Hedron',
+  'archaeology (3)':         'Sharding Sphinx',
+  'archaeology (4)':         'Scarecrone',
+  'milling':                 'Bruvac the Grandiloquent',
+  'pirates (1)':             'Corsair Captain',
+  'pirates (2)':             'Spectral Sailor',
+  'spirits (1)':             'Shacklegeist',
+  'spirits (2)':             'Rattlechains',
+  'teferi':                  'Teferi, Master of Time',
+  'under the sea (1)':       'Pursued Whale',
+  'under the sea (2)':       'Cryptic Serpent',
+  'well-read (1)':           'Ormos, Archive Keeper',
+  'well-read (2)':           'Arcane Encyclopedia',
+  'well-read (3)':           'Rhystic Study',
+  'well-read (4)':           'Read the Runes',
+  'wizards (1)':             'Talrand, Sky Summoner',
+  'wizards (2)':             'Riptide Laboratory',
+  'wizards (3)':             "Teferi's Protege",
+  'wizards (4)':             'Barrin, Tolarian Archmage',
   // black
-  'discarding':'Tinybones, Trinket Thief', 'liliana':'Liliana, Waker of the Dead',
-  'minions':'Ghoulcaller Gisa', 'phyrexian':'Sheoldred, Whispering One',
-  'reanimated':'Rise of the Dark Realms', 'rogues':'Gonti, Lord of Luxury',
-  'spooky':'Harvester of Souls', 'vampires':'Drana, Liberator of Malakir',
-  'witchcraft':'Witch of the Moors',
+  'discarding (1)':          'Tinybones, Trinket Thief',
+  'discarding (2)':          "Liliana's Reaver",
+  'liliana':                 'Liliana, Waker of the Dead',
+  'minions (1)':             'Kels, Fight Fixer',
+  'minions (2)':             'Eternal Taskmaster',
+  'minions (3)':             'Phyrexian Tower',
+  'minions (4)':             'Ghoulcaller Gisa',
+  'phyrexian':               'Sheoldred, Whispering One',
+  'reanimated (1)':          'Reanimate',
+  'reanimated (2)':          'Macabre Waltz',
+  'reanimated (3)':          'Gravewaker',
+  'reanimated (4)':          'Rise of the Dark Realms',
+  'rogues (1)':              'Gonti, Lord of Luxury',
+  'rogues (2)':              'Corpse Traders',
+  'spooky (1)':              "Liliana's Standard Bearer",
+  'spooky (2)':              'Harvester of Souls',
+  'spooky (3)':              'Languish',
+  'spooky (4)':              'Caged Zombie',
+  'vampires (1)':            'Vito, Thorn of the Dusk Rose',
+  'vampires (2)':            'Blood Host',
+  'vampires (3)':            'Sengir Vampire',
+  'vampires (4)':            'Drana, Liberator of Malakir',
+  'witchcraft (1)':          'Witch of the Moors',
+  'witchcraft (2)':          'Swarm of Bloodflies',
   // red
-  'chandra':'Chandra, Heart of Fire', 'devilish':'Zurzoth, Chaos Rider',
-  'dragons':'Terror of the Peaks', 'goblins':'Muxus, Goblin Grandee',
-  'lightning':'Ball Lightning', 'minotaurs':'Sethron, Hurloon General',
-  'seismic':'Grim Lavamancer', 'smashing':'Etali, Primal Storm',
-  'spellcasting':'Immolating Gyre',
+  'chandra':                 'Chandra, Heart of Fire',
+  'devilish (1)':            'Zurzoth, Chaos Rider',
+  'devilish (2)':            "Tibalt's Rager",
+  'devilish (3)':            'Brash Taunter',
+  'devilish (4)':            'Hellrider',
+  'dragons (1)':             'Terror of the Peaks',
+  'dragons (2)':             'Lathliss, Dragon Queen',
+  'goblins (1)':             'Muxus, Goblin Grandee',
+  'goblins (2)':             'Battle-Rattle Shaman',
+  'goblins (3)':             'Goblin Chieftain',
+  'goblins (4)':             'Krenko, Mob Boss',
+  'lightning (1)':           'Lightning Bolt',
+  'lightning (2)':           'Ball Lightning',
+  'minotaurs (1)':           'Sethron, Hurloon General',
+  'minotaurs (2)':           'Rageblood Shaman',
+  'seismic':                 'Grim Lavamancer',
+  'smashing (1)':            'Flametongue Kavu',
+  'smashing (2)':            'Flames of the Raze-Boar',
+  'smashing (3)':            'Hamletback Goliath',
+  'smashing (4)':            'Etali, Primal Storm',
+  'spellcasting (1)':        'Goblin Wizardry',
+  'spellcasting (2)':        'Kiln Fiend',
+  'spellcasting (3)':        'Dualcaster Mage',
+  'spellcasting (4)':        'Immolating Gyre',
   // green
-  'cats':'Feline Sovereign', 'dinosaurs':'Ghalta, Primal Hunger', 'elves':'Craterhoof Behemoth',
-  'garruk':'Garruk, Unleashed', 'lands':'Ulvenwald Hydra', 'plus one':'Primeval Bounty',
-  'predatory':'Thragtusk', 'tree-hugging':'Soul of the Harvest', 'walls':'Towering Titan',
+  'cats (1)':                'Feline Sovereign',
+  'cats (2)':                'Pridemalkin',
+  'dinosaurs (1)':           'Ghalta, Primal Hunger',
+  'dinosaurs (2)':           'Thundering Spineback',
+  'dinosaurs (3)':           'Drover of the Mighty',
+  'dinosaurs (4)':           'Rampaging Brontodon',
+  'elves (1)':               'Elvish Archdruid',
+  'elves (2)':               'Allosaurus Shepherd',
+  'garruk':                  'Garruk, Unleashed',
+  'lands (1)':               'Ulvenwald Hydra',
+  'lands (2)':               'Oracle of Mul Daya',
+  'plus one (1)':            'Primeval Bounty',
+  'plus one (2)':            'Branching Evolution',
+  'plus one (3)':            'Rishkar, Peema Renegade',
+  'plus one (4)':            'Champion of Lambholt',
+  'predatory (1)':           'Neyith of the Dire Hunt',
+  'predatory (2)':           'Affectionate Indrik',
+  'predatory (3)':           'Thragtusk',
+  'predatory (4)':           'Ravenous Baloth',
+  'tree-hugging (1)':        'Primordial Sage',
+  'tree-hugging (2)':        'Llanowar Visionary',
+  'tree-hugging (3)':        'Jolrael, Mwonvuli Recluse',
+  'tree-hugging (4)':        'Soul of the Harvest',
+  'walls':                   'Towering Titan',
   // multicolor
-  'rainbow':'Maelstrom Archangel',
+  'rainbow':                 'Maelstrom Archangel',
 };
 const EMBLEM_URLS = {};
 
@@ -4663,11 +4777,11 @@ const EMBLEM_URLS = {};
    instantly on first roll. stagger respects Scryfall's ~50-100ms rate limit. */
 (function preloadEmblems(){
   let i = 0;
-  for(const [theme, cardName] of Object.entries(THEME_EMBLEM)){
+  for(const [packName, cardName] of Object.entries(PACK_EMBLEM)){
     const ex = exportCard(cardName);
     if(!ex.set || !ex.cn) continue;
     const url = `https://api.scryfall.com/cards/${ex.set.toLowerCase()}/${ex.cn}?format=image&version=art_crop`;
-    EMBLEM_URLS[theme] = url;
+    EMBLEM_URLS[packName] = url;
     setTimeout(() => { new Image().src = url; }, i * CONFIG.preloadStaggerMs);
     i++;
   }
@@ -4716,7 +4830,7 @@ function renderPack(idx, pack, opts={}){
   const rarity = PACK_RARITY[pack.theme];
   if(rarity){ refs.rarityEl.setAttribute('data-rarity', rarity); refs.rarityEl.title = RARITY_LABELS[rarity]; }
   else { refs.rarityEl.removeAttribute('data-rarity'); refs.rarityEl.title = ''; }
-  const emblem = EMBLEM_URLS[pack.theme];
+  const emblem = EMBLEM_URLS[pack.name];
   refs.el.style.setProperty('--emblem-bg', emblem ? `url("${emblem}")` : 'none');
 }
 

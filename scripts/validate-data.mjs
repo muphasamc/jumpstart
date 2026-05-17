@@ -99,6 +99,30 @@ for (const p of packs) {
 }
 log(`  ${themes.size} temas distintos`);
 
+log('\n═══ PACK EMBLEMS ═══');
+const peMatch = html.match(/const PACK_EMBLEM = (\{[\s\S]*?\n\});/);
+if (!peMatch) warn('no se encontró PACK_EMBLEM');
+else {
+  const PACK_EMBLEM = eval('(' + peMatch[1] + ')');
+  log(`  ${Object.keys(PACK_EMBLEM).length} entradas`);
+  const packByName = new Map(packs.map(p => [p.name, p]));
+  const before = problems;
+  for (const [packName, cardName] of Object.entries(PACK_EMBLEM)) {
+    const pack = packByName.get(packName);
+    if (!pack) { warn(`PACK_EMBLEM["${packName}"] no corresponde a ningún pack`); continue; }
+    if (!pack.cards.some(c => c.name === cardName)) {
+      warn(`emblem "${cardName}" no está en el pool de "${packName}"`);
+    }
+    if (!CARD_DATA[cardName]) {
+      warn(`emblem "${cardName}" (${packName}) no está en CARD_DATA`);
+    }
+  }
+  for (const p of packs) {
+    if (!PACK_EMBLEM[p.name]) warn(`pack "${p.name}" sin emblem`);
+  }
+  if (problems === before) log('  OK · todos los emblems válidos y presentes en su pool');
+}
+
 log('\n═══ DATOS DE MANA_COST ═══');
 const withMc = Object.values(CARD_DATA).filter(d => d[2]).length;
 const withoutMc = Object.values(CARD_DATA).length - withMc;
