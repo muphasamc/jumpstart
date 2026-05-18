@@ -184,6 +184,179 @@ body::before{
   pointer-events:none;
   z-index:99;
 }
+
+/* ===== atmos: blurred-blob ambient texture layered UNDER the tints =====
+   sits at z-index:0 (above body bg, below body::before grid + tint-layer).
+   2 layers per side (left/right) cross-fade exactly like tints, so on slot
+   change the idle layer gets the new color+archetype and fades in.
+   each layer hosts 4 .blob children that share one archetype keyframe but
+   carry per-blob --dur-mult and --delay vars so the 4 motions never sync.
+   color comes from --c1/--c2/--c3 (set by [data-color]). archetype dictates
+   motion (set by [data-archetype]). */
+/* atmos tuning — final values dialed via the debug panel. lives on :root
+   so it survives removing the debug block. the per-property `var(.., fallback)`
+   reads below cover the case where someone wipes these too. */
+:root{
+  --atmos-blur:90px;
+  --atmos-speed:1.09;
+  --atmos-opa:0.56;
+  --atmos-blend:overlay;
+}
+.atmos{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  opacity:0;
+  overflow:hidden;
+  transition: opacity var(--dur-slow) var(--ease-material);
+  /* baseline palette = neutral gold so the first frame is never empty */
+  --c1: rgba(201,162,74,0.35);
+  --c2: rgba(245,231,160,0.30);
+  --c3: rgba(240,200,92,0.22);
+}
+.atmos[data-active]{opacity: var(--atmos-opa, 1)}
+.atmos .blob{
+  position:absolute;
+  width:55vw;
+  height:55vw;
+  border-radius:50%;
+  filter:blur(var(--atmos-blur, 90px));
+  mix-blend-mode: var(--atmos-blend, screen);
+  will-change:transform;
+  pointer-events:none;
+}
+.atmos.is-paused .blob{animation-play-state: paused}
+/* horizontal anchoring per side — blobs slightly off-screen on the outside
+   so the visible portion is always the diffuse falloff, never the hard center */
+.atmos.is-left  .blob{ left:-18vw; }
+.atmos.is-right .blob{ right:-18vw; }
+/* vertical seeding — 4 blobs spread top→bottom so the lateral feels filled */
+.atmos .b1{ top:-12vh; --delay:0s;   --dur-mult:1.00; }
+.atmos .b2{ top:18vh;  --delay:-4s;  --dur-mult:0.82; }
+.atmos .b3{ top:46vh;  --delay:-9s;  --dur-mult:1.21; }
+.atmos .b4{ top:72vh;  --delay:-2s;  --dur-mult:0.94; }
+/* color sources — 4 blobs rotate through the 3 palette stops */
+.atmos .b1{ background: radial-gradient(circle, var(--c1) 0%, transparent 62%); }
+.atmos .b2{ background: radial-gradient(circle, var(--c2) 0%, transparent 62%); }
+.atmos .b3{ background: radial-gradient(circle, var(--c3) 0%, transparent 62%); }
+.atmos .b4{ background: radial-gradient(circle, var(--c1) 0%, transparent 62%); }
+
+/* palettes per mtg color — slightly stronger alphas than the tints because
+   the blur dilutes saturation. each palette has a brighter primary, a mid,
+   and a desaturated tertiary so the cross-blob mix reads as gradient depth */
+.atmos[data-color="white"]{
+  --c1: rgba(245,231,160,0.55);
+  --c2: rgba(255,224,150,0.45);
+  --c3: rgba(255,247,205,0.35);
+}
+.atmos[data-color="blue"]{
+  --c1: rgba(59,130,246,0.60);
+  --c2: rgba(103,232,249,0.45);
+  --c3: rgba(125,211,252,0.40);
+}
+.atmos[data-color="black"]{
+  --c1: rgba(139,63,191,0.65);
+  --c2: rgba(88,28,135,0.55);
+  --c3: rgba(168,85,247,0.45);
+}
+.atmos[data-color="red"]{
+  --c1: rgba(220,38,38,0.60);
+  --c2: rgba(249,115,22,0.55);
+  --c3: rgba(254,202,202,0.35);
+}
+.atmos[data-color="green"]{
+  --c1: rgba(22,163,74,0.55);
+  --c2: rgba(34,197,94,0.45);
+  --c3: rgba(132,204,22,0.38);
+}
+.atmos[data-color="multicolor"]{
+  --c1: rgba(201,162,74,0.50);
+  --c2: rgba(240,199,92,0.40);
+  --c3: rgba(120,90,40,0.30);
+}
+
+/* archetype motions — one keyframe each, applied to all 4 blobs in the layer.
+   per-blob --dur-mult/--delay desync them so the loop never reads as periodic.
+   keyframes deliberately avoid touching opacity (the parent layer handles
+   visibility via [data-active]) and stay GPU-friendly (transform only). */
+.atmos[data-archetype="sky"]      .blob{ animation: atmos-sky      calc(28s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="fire"]     .blob{ animation: atmos-fire     calc(9s  * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="undead"]   .blob{ animation: atmos-undead   calc(34s * var(--dur-mult) / var(--atmos-speed, 1)) linear      infinite var(--delay); }
+.atmos[data-archetype="aquatic"]  .blob{ animation: atmos-aquatic  calc(22s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="wild"]     .blob{ animation: atmos-wild     calc(17s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="arcane"]   .blob{ animation: atmos-arcane   calc(30s * var(--dur-mult) / var(--atmos-speed, 1)) linear      infinite var(--delay); }
+.atmos[data-archetype="metal"]    .blob{ animation: atmos-metal    calc(13s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="chaos"]    .blob{ animation: atmos-chaos    calc(15s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+.atmos[data-archetype="default"]  .blob{ animation: atmos-default  calc(24s * var(--dur-mult) / var(--atmos-speed, 1)) ease-in-out infinite var(--delay); }
+
+/* sky — slow upward float with gentle horizontal sway → angels, clouds */
+@keyframes atmos-sky{
+  0%   { transform: translate3d(0,18vh,0)     scale(0.92); }
+  50%  { transform: translate3d(4vw,-6vh,0)   scale(1.10); }
+  100% { transform: translate3d(-2vw,-22vh,0) scale(0.95); }
+}
+/* fire — quick flicker, vertical jitter, breathing scale → dragons, goblins */
+@keyframes atmos-fire{
+  0%   { transform: translate3d(0,6vh,0)     scale(0.85); }
+  18%  { transform: translate3d(-1vw,2vh,0)  scale(1.08); }
+  37%  { transform: translate3d(2vw,-4vh,0)  scale(0.95); }
+  55%  { transform: translate3d(-1vw,-10vh,0)scale(1.18); }
+  74%  { transform: translate3d(1vw,-6vh,0)  scale(0.90); }
+  100% { transform: translate3d(0,6vh,0)     scale(0.85); }
+}
+/* undead — heavy horizontal drift, slow respiration → vampires, swamp rot */
+@keyframes atmos-undead{
+  0%   { transform: translate3d(-12vw,0,0)   scale(1.05); }
+  50%  { transform: translate3d(8vw,4vh,0)   scale(1.22); }
+  100% { transform: translate3d(-12vw,0,0)   scale(1.05); }
+}
+/* aquatic — long sinusoidal wave → pirates, merfolk, of-the-coast */
+@keyframes atmos-aquatic{
+  0%   { transform: translate3d(0,0,0)        scale(1.00); }
+  25%  { transform: translate3d(6vw,-2vh,0)   scale(1.12); }
+  50%  { transform: translate3d(0,-4vh,0)     scale(1.00); }
+  75%  { transform: translate3d(-6vw,-2vh,0)  scale(1.12); }
+  100% { transform: translate3d(0,0,0)        scale(1.00); }
+}
+/* wild — organic erratic jitter → elves, beasts, spiders, dinosaurs */
+@keyframes atmos-wild{
+  0%   { transform: translate3d(0,0,0)       scale(0.95); }
+  17%  { transform: translate3d(3vw,-5vh,0)  scale(1.12); }
+  34%  { transform: translate3d(-2vw,1vh,0)  scale(0.90); }
+  51%  { transform: translate3d(5vw,4vh,0)   scale(1.15); }
+  68%  { transform: translate3d(-4vw,-2vh,0) scale(0.98); }
+  85%  { transform: translate3d(1vw,5vh,0)   scale(0.94); }
+  100% { transform: translate3d(0,0,0)       scale(0.95); }
+}
+/* arcane — slow orbital rotation → wizards, urza's, spellcasting */
+@keyframes atmos-arcane{
+  0%   { transform: rotate(0deg)   translate3d(8vw,0,0) scale(1.00); }
+  50%  { transform: rotate(180deg) translate3d(10vw,0,0) scale(1.15); }
+  100% { transform: rotate(360deg) translate3d(8vw,0,0) scale(1.00); }
+}
+/* metal — disciplined rhythmic pulse → knights, armored, legion */
+@keyframes atmos-metal{
+  0%   { transform: translate3d(0,0,0)       scale(1.00); }
+  50%  { transform: translate3d(2vw,-2vh,0)  scale(1.10); }
+  100% { transform: translate3d(0,0,0)       scale(1.00); }
+}
+/* chaos — wide unpredictable swings → rainbow, multi-headed, treasures */
+@keyframes atmos-chaos{
+  0%   { transform: translate3d(0,0,0)        scale(0.92); }
+  20%  { transform: translate3d(10vw,-8vh,0)  scale(1.20); }
+  40%  { transform: translate3d(-7vw,5vh,0)   scale(0.85); }
+  60%  { transform: translate3d(13vw,-3vh,0)  scale(1.12); }
+  80%  { transform: translate3d(-10vw,9vh,0)  scale(0.97); }
+  100% { transform: translate3d(0,0,0)        scale(0.92); }
+}
+/* default — generic smooth drift, used when no archetype keyword matches */
+@keyframes atmos-default{
+  0%   { transform: translate3d(0,0,0)      scale(1.00); }
+  50%  { transform: translate3d(4vw,-4vh,0) scale(1.10); }
+  100% { transform: translate3d(0,0,0)      scale(1.00); }
+}
+
 .shell{
   position:relative;
   z-index:2;
@@ -990,7 +1163,80 @@ body::before{
   .pack.settling .pack-meta{animation:none}
   .pack.settle{animation:none}
   #hover-preview{transition:none}
+  .atmos{transition:none}
+  .atmos .blob{animation:none}
 }
+
+/* ===== DEBUG: atmos panel — remove block on cleanup ===== */
+body.dbg-hide-tints  .tint-layer{opacity:0 !important}
+body.dbg-hide-mosaic .hero-mosaic{opacity:0 !important}
+body.dbg-atmos-off   .atmos{opacity:0 !important}
+#atmos-debug.hidden{display:none}
+#atmos-debug{
+  position:fixed;
+  left:12px;
+  bottom:12px;
+  z-index:9999;
+  background:rgba(10,8,6,0.92);
+  border:1px solid var(--frame-2);
+  border-radius:var(--radius-lg);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--ink);
+  width:280px;
+  backdrop-filter:blur(8px);
+  user-select:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+}
+#atmos-debug header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 10px;
+  border-bottom:1px solid var(--frame-2);
+  cursor:pointer;
+}
+#atmos-debug header span{letter-spacing:0.2em;color:var(--gold);font-weight:700}
+#atmos-debug header .ad-x{
+  background:transparent;border:0;color:var(--ink-dim);
+  font-family:inherit;font-size:14px;cursor:pointer;padding:0 4px;
+}
+#atmos-debug .ad-body{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+#atmos-debug.collapsed .ad-body{display:none}
+#atmos-debug .ad-row{display:flex;flex-direction:column;gap:3px}
+#atmos-debug .ad-row > label{
+  color:var(--ink-dim);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
+}
+#atmos-debug .ad-chips{display:flex;flex-wrap:wrap;gap:3px}
+#atmos-debug .ad-chips button{
+  background:rgba(58,47,32,0.4);
+  color:var(--ink);
+  border:1px solid var(--frame-2);
+  border-radius:3px;
+  padding:3px 7px;
+  font-family:inherit;
+  font-size:10px;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  transition:all 100ms;
+}
+#atmos-debug .ad-chips button:hover{background:rgba(201,162,74,0.2);border-color:var(--gold)}
+#atmos-debug .ad-chips button.active{
+  background:var(--gold);color:#0a0806;border-color:var(--gold-bright);font-weight:700;
+}
+#atmos-debug input[type="range"]{
+  width:100%;height:14px;accent-color:var(--gold);background:transparent;
+}
+#atmos-debug .ad-bottom{display:flex;gap:6px;justify-content:space-between}
+#atmos-debug .ad-bottom button{
+  background:rgba(58,47,32,0.4);color:var(--ink-bright);border:1px solid var(--frame-2);
+  border-radius:3px;padding:4px 10px;font-family:inherit;font-size:10px;cursor:pointer;
+  letter-spacing:0.1em;flex:1;
+}
+#atmos-debug .ad-bottom button:hover{background:rgba(201,162,74,0.2);border-color:var(--gold)}
+#atmos-debug output{color:var(--gold-bright);font-weight:700}
+/* ===== END DEBUG ===== */
 
 @media (max-width:1100px){
   .packs{grid-template-columns:1fr}
@@ -999,6 +1245,10 @@ body::before{
 </head>
 <body>
 
+<div class="atmos is-left"  id="atmos-left-1"  aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
+<div class="atmos is-left"  id="atmos-left-2"  aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
+<div class="atmos is-right" id="atmos-right-1" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
+<div class="atmos is-right" id="atmos-right-2" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
 <div class="tint-layer is-left"  id="tint-left-1"></div>
 <div class="tint-layer is-left"  id="tint-left-2"></div>
 <div class="tint-layer is-right" id="tint-right-1"></div>
@@ -4547,6 +4797,9 @@ const state = {
   locked: [false, false],
   animating: false,
   tintActive: { left: 1, right: 1 },
+  atmosActive: { left: 1, right: 1 },
+  // DEBUG: remove atmosDebug + window.__atmosDebug wiring on cleanup
+  atmosDebug: { colorOverride: null, archOverride: null, paused: false, side: 'both', hideTints: false },
   hover: { currentKey: null, pendingPointer: null, pendingFrame: false },
 };
 
@@ -4582,6 +4835,66 @@ function updateTint(){
   const c1 = state.slots[1] ? state.slots[1].color : null;
   applyTintToSide('left',  c0);
   applyTintToSide('right', c1);
+}
+
+/* ===== ATMOS: archetype detection + per-side cross-fade =====
+   archetypeFor() maps pack.theme → motion family. order matters: more
+   specific themes (chaos, sky, aquatic) are checked before generic ones
+   (wild, default). first keyword hit wins. */
+const ARCHETYPE_KEYWORDS = [
+  ['chaos',   ['rainbow','chaos','multi-head','too many','treasure','land','eldraz']],
+  ['sky',     ['angel','feather','cloud','soar','spirit','holy','fae','above','flying']],
+  ['aquatic', ['pirate','sea','archae','milling','drown','coast','merfolk','ninja','illusion']],
+  ['fire',    ['dragon','devil','fier','fire','goblin','smash','seism','burn','stok','zealot','warrior','raid','speed','spicy','lightning','chandra','minotaur','bloody','copied','too many']],
+  ['undead',  ['vampire','reanim','discard','liliana','witch','spook','bone','demon','fang','gross','morbid','zombie','ghast','icky','cruel','unlucky','rat','nefar','grave','ne\'er','rogue']],
+  ['arcane',  ['wizard','well-read','teferi','spell','scry','think','urza','inventiv','bookworm','surprise','basri','doctor','enchant','constellation','shapeshift','detective','go to school','scrying','snow']],
+  ['metal',   ['armored','knight','vehicle','law','teamwork','armed','healer','hero','legion','prideful','stalwart','cleric','phyrex','minion','blink','wall','giddyap']],
+  ['wild',    ['cat','dog','dino','elve','beast','predat','tree','garruk','primate','wolf','snake','insect','feroc','gigant','fun guy','explor','encounter','landfall','dinner','modified','plus one','unicorn','cycling','experimental','snake']],
+];
+function archetypeFor(theme){
+  if(!theme) return 'default';
+  const t = theme.toLowerCase();
+  for(const [arch, keys] of ARCHETYPE_KEYWORDS){
+    if(keys.some(k => t.includes(k))) return arch;
+  }
+  return 'default';
+}
+
+/* same cross-fade pattern as applyTintToSide — idle layer gets the new
+   color+archetype, force reflow so styles commit before opacity transitions,
+   then swap active flags simultaneously. null pack clears both layers. */
+function applyAtmosToSide(side, pack){
+  const cur = state.atmosActive[side];
+  const nxt = cur === 1 ? 2 : 1;
+  const curEl = document.getElementById(`atmos-${side}-${cur}`);
+  const nxtEl = document.getElementById(`atmos-${side}-${nxt}`);
+  if(!curEl || !nxtEl) return;
+
+  if(!pack){
+    curEl.removeAttribute('data-active');
+    nxtEl.removeAttribute('data-active');
+    return;
+  }
+  // debug override wins over real pack values when active
+  const dbg = state.atmosDebug;
+  const color = (dbg && dbg.colorOverride) || pack.color;
+  const arch  = (dbg && dbg.archOverride)  || archetypeFor(pack.theme);
+
+  if(curEl.hasAttribute('data-active') &&
+     curEl.getAttribute('data-color')     === color &&
+     curEl.getAttribute('data-archetype') === arch) return;
+
+  nxtEl.setAttribute('data-color', color);
+  nxtEl.setAttribute('data-archetype', arch);
+  void nxtEl.offsetWidth;
+  nxtEl.setAttribute('data-active', '');
+  curEl.removeAttribute('data-active');
+  state.atmosActive[side] = nxt;
+}
+
+function updateAtmos(){
+  applyAtmosToSide('left',  state.slots[0]);
+  applyAtmosToSide('right', state.slots[1]);
 }
 
 /* pick a random pack whose theme differs from excludeTheme (or any if null) */
@@ -4670,6 +4983,7 @@ function animateRoll(willRoll){
       refs.tagEl.textContent = '';
       refs.metaEl.textContent = '';
       applyTintToSide(i === 0 ? 'left' : 'right', null);
+      applyAtmosToSide(i === 0 ? 'left' : 'right', null);
     }
   });
 
@@ -4693,6 +5007,7 @@ function animateRoll(willRoll){
     }, CONFIG.roll.cleanupMs);
     renderPack(i, state.slots[i], { ghost: false });
     updateTint();
+    updateAtmos();
   };
 
   const finishRoll = (delay) => {
@@ -11813,6 +12128,7 @@ function loadProducts(codes, opts){
       }
     });
     updateTint();
+    updateAtmos();
     if(typeof hideHover === 'function') hideHover();
     updateLockUI();
   }
@@ -12164,6 +12480,257 @@ cardGrid.addEventListener('mouseleave', hideHover);
   // are stealth-warmed inside animateRoll for the two packs that actually land.
   loadProducts(state.activeSets, { initial: true });
 })();
+
+/* ===== DEBUG: atmos panel wiring — remove block on cleanup ===== */
+(function(){
+  const root = document.documentElement;
+  const panel = document.createElement('div');
+  panel.id = 'atmos-debug';
+  panel.className = 'hidden';
+  panel.innerHTML = `
+    <header>
+      <span>ATMOS DEBUG</span>
+      <button class="ad-x" type="button" title="toggle">_</button>
+    </header>
+    <div class="ad-body">
+      <div class="ad-row">
+        <label>side</label>
+        <div class="ad-chips" data-group="side">
+          <button type="button" data-side="left">L</button>
+          <button type="button" data-side="right">R</button>
+          <button type="button" data-side="both" class="active">L+R</button>
+        </div>
+      </div>
+      <div class="ad-row">
+        <label>color override</label>
+        <div class="ad-chips" data-group="color">
+          <button type="button" data-color="" class="active">—</button>
+          <button type="button" data-color="white">W</button>
+          <button type="button" data-color="blue">U</button>
+          <button type="button" data-color="black">B</button>
+          <button type="button" data-color="red">R</button>
+          <button type="button" data-color="green">G</button>
+          <button type="button" data-color="multicolor">M</button>
+        </div>
+      </div>
+      <div class="ad-row">
+        <label>archetype override</label>
+        <div class="ad-chips" data-group="arch">
+          <button type="button" data-arch="" class="active">—</button>
+          <button type="button" data-arch="sky">sky</button>
+          <button type="button" data-arch="fire">fire</button>
+          <button type="button" data-arch="undead">undead</button>
+          <button type="button" data-arch="aquatic">aquatic</button>
+          <button type="button" data-arch="wild">wild</button>
+          <button type="button" data-arch="arcane">arcane</button>
+          <button type="button" data-arch="metal">metal</button>
+          <button type="button" data-arch="chaos">chaos</button>
+          <button type="button" data-arch="default">default</button>
+        </div>
+      </div>
+      <div class="ad-row">
+        <label>blur <output id="ad-blur-val">90</output>px</label>
+        <input type="range" id="ad-blur" min="0" max="200" value="90">
+      </div>
+      <div class="ad-row">
+        <label>speed <output id="ad-speed-val">1.09</output>x</label>
+        <input type="range" id="ad-speed" min="25" max="300" value="109">
+      </div>
+      <div class="ad-row">
+        <label>opacity <output id="ad-opa-val">0.56</output></label>
+        <input type="range" id="ad-opa" min="0" max="100" value="56">
+      </div>
+      <div class="ad-row">
+        <label>blend</label>
+        <div class="ad-chips" data-group="blend">
+          <button type="button" data-blend="screen">screen</button>
+          <button type="button" data-blend="lighter">lighter</button>
+          <button type="button" data-blend="overlay" class="active">overlay</button>
+          <button type="button" data-blend="normal">normal</button>
+        </div>
+      </div>
+      <div class="ad-row">
+        <label><input type="checkbox" id="ad-hide-tints"> hide tints</label>
+        <label><input type="checkbox" id="ad-hide-mosaic"> hide mosaic</label>
+        <label><input type="checkbox" id="ad-atmos-off"> atmos off</label>
+        <label><input type="checkbox" id="ad-paused"> pause anim</label>
+      </div>
+      <div class="ad-bottom">
+        <button type="button" id="ad-preview">preview</button>
+        <button type="button" id="ad-reset">reset</button>
+      </div>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const dbg = state.atmosDebug;
+  // bypass pack lookup: write color+arch straight to the layer (idle gets it,
+  // cross-fade as usual). lets the panel preview any combo without a real roll.
+  function forceAtmos(side, color, archetype){
+    const cur = state.atmosActive[side];
+    const nxt = cur === 1 ? 2 : 1;
+    const curEl = document.getElementById(`atmos-${side}-${cur}`);
+    const nxtEl = document.getElementById(`atmos-${side}-${nxt}`);
+    if(!curEl || !nxtEl) return;
+    if(!color){
+      curEl.removeAttribute('data-active');
+      nxtEl.removeAttribute('data-active');
+      return;
+    }
+    nxtEl.setAttribute('data-color', color);
+    nxtEl.setAttribute('data-archetype', archetype || 'default');
+    void nxtEl.offsetWidth;
+    nxtEl.setAttribute('data-active', '');
+    curEl.removeAttribute('data-active');
+    state.atmosActive[side] = nxt;
+  }
+  function targetSides(){
+    return dbg.side === 'both' ? ['left','right'] : [dbg.side];
+  }
+  function applyOverride(){
+    // if either override is set we paint directly. otherwise revert to whatever
+    // the real slots say (slot null → cleared layer).
+    const sides = targetSides();
+    if(dbg.colorOverride){
+      sides.forEach(s => forceAtmos(s, dbg.colorOverride, dbg.archOverride || 'default'));
+    } else if(dbg.archOverride){
+      // arch-only: keep slot color if available, else white as a placeholder
+      sides.forEach(s => {
+        const sIdx = s === 'left' ? 0 : 1;
+        const pk = state.slots[sIdx];
+        forceAtmos(s, pk ? pk.color : 'white', dbg.archOverride);
+      });
+    } else {
+      updateAtmos();
+    }
+  }
+  function setActive(group, value){
+    panel.querySelectorAll(`.ad-chips[data-group="${group}"] button`).forEach(b => {
+      const v = b.getAttribute(`data-${group}`) || '';
+      b.classList.toggle('active', v === value);
+    });
+  }
+  // chip handlers
+  panel.querySelectorAll('.ad-chips[data-group="side"] button').forEach(b => {
+    b.addEventListener('click', () => {
+      dbg.side = b.dataset.side;
+      setActive('side', dbg.side);
+    });
+  });
+  panel.querySelectorAll('.ad-chips[data-group="color"] button').forEach(b => {
+    b.addEventListener('click', () => {
+      dbg.colorOverride = b.dataset.color || null;
+      setActive('color', b.dataset.color || '');
+      applyOverride();
+    });
+  });
+  panel.querySelectorAll('.ad-chips[data-group="arch"] button').forEach(b => {
+    b.addEventListener('click', () => {
+      dbg.archOverride = b.dataset.arch || null;
+      setActive('arch', b.dataset.arch || '');
+      applyOverride();
+    });
+  });
+  panel.querySelectorAll('.ad-chips[data-group="blend"] button').forEach(b => {
+    b.addEventListener('click', () => {
+      root.style.setProperty('--atmos-blend', b.dataset.blend);
+      setActive('blend', b.dataset.blend);
+    });
+  });
+  // sliders
+  const blurIn = panel.querySelector('#ad-blur');
+  const blurOut = panel.querySelector('#ad-blur-val');
+  blurIn.addEventListener('input', () => {
+    root.style.setProperty('--atmos-blur', blurIn.value + 'px');
+    blurOut.textContent = blurIn.value;
+  });
+  const speedIn = panel.querySelector('#ad-speed');
+  const speedOut = panel.querySelector('#ad-speed-val');
+  speedIn.addEventListener('input', () => {
+    const mult = speedIn.value / 100;
+    root.style.setProperty('--atmos-speed', mult);
+    speedOut.textContent = mult.toFixed(2);
+  });
+  const opaIn = panel.querySelector('#ad-opa');
+  const opaOut = panel.querySelector('#ad-opa-val');
+  opaIn.addEventListener('input', () => {
+    const v = opaIn.value / 100;
+    root.style.setProperty('--atmos-opa', v);
+    opaOut.textContent = v.toFixed(2);
+  });
+  // checkboxes
+  panel.querySelector('#ad-hide-tints').addEventListener('change', e => {
+    document.body.classList.toggle('dbg-hide-tints', e.target.checked);
+  });
+  panel.querySelector('#ad-hide-mosaic').addEventListener('change', e => {
+    document.body.classList.toggle('dbg-hide-mosaic', e.target.checked);
+  });
+  panel.querySelector('#ad-atmos-off').addEventListener('change', e => {
+    document.body.classList.toggle('dbg-atmos-off', e.target.checked);
+  });
+  panel.querySelector('#ad-paused').addEventListener('change', e => {
+    document.querySelectorAll('.atmos').forEach(el => el.classList.toggle('is-paused', e.target.checked));
+  });
+  // preview button — cycle through all 9 archetypes on both sides for 2s each
+  panel.querySelector('#ad-preview').addEventListener('click', () => {
+    const archs = ['sky','fire','undead','aquatic','wild','arcane','metal','chaos','default'];
+    const colors = ['white','blue','black','red','green','multicolor'];
+    let i = 0;
+    const tick = () => {
+      if(i >= archs.length) return;
+      const a = archs[i], c = colors[i % colors.length];
+      forceAtmos('left',  c, a);
+      forceAtmos('right', colors[(i+3) % colors.length], a);
+      i++;
+      setTimeout(tick, 1800);
+    };
+    tick();
+  });
+  // reset
+  panel.querySelector('#ad-reset').addEventListener('click', () => {
+    dbg.colorOverride = null;
+    dbg.archOverride = null;
+    dbg.side = 'both';
+    // reset = drop the inline override, fall back to :root defaults (90/1.09/0.56/overlay)
+    root.style.removeProperty('--atmos-blur');
+    root.style.removeProperty('--atmos-speed');
+    root.style.removeProperty('--atmos-opa');
+    root.style.removeProperty('--atmos-blend');
+    blurIn.value = 90;   blurOut.textContent = '90';
+    speedIn.value = 109; speedOut.textContent = '1.09';
+    opaIn.value = 56;    opaOut.textContent = '0.56';
+    setActive('color', '');
+    setActive('arch', '');
+    setActive('side', 'both');
+    setActive('blend', 'overlay');
+    ['ad-hide-tints','ad-hide-mosaic','ad-atmos-off','ad-paused'].forEach(id => {
+      panel.querySelector('#'+id).checked = false;
+    });
+    document.body.classList.remove('dbg-hide-tints','dbg-hide-mosaic','dbg-atmos-off');
+    document.querySelectorAll('.atmos').forEach(el => el.classList.remove('is-paused'));
+    updateAtmos();
+  });
+  // header toggle (collapse / expand)
+  panel.querySelector('header').addEventListener('click', e => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    panel.classList.toggle('collapsed');
+  });
+  panel.querySelector('.ad-x').addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('hidden');
+  });
+  // hotkey: B toggles the panel. ignored when typing in an input/textarea
+  // or when a modifier is held (so it doesn't fight browser shortcuts).
+  window.addEventListener('keydown', e => {
+    if(e.key !== 'b' && e.key !== 'B') return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (document.activeElement || {}).tagName;
+    if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+    panel.classList.toggle('hidden');
+  });
+  // expose for console tinkering
+  window.__atmos = { forceAtmos, applyOverride, dbg, archetypeFor };
+})();
+/* ===== END DEBUG ===== */
 </script>
 
 </body>
